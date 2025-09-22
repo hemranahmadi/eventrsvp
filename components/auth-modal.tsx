@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { authStorage, emailVerification, type User } from "@/lib/auth"
+import { AuthClient, type User } from "@/lib/auth-client"
 import { CheckCircle, Mail } from "lucide-react"
 
 interface AuthModalProps {
@@ -27,68 +27,76 @@ export function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) {
   const [verificationCode, setVerificationCode] = useState("")
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [loading, setLoading] = useState(false)
 
   if (!isOpen) return null
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setSuccess("")
+    setLoading(true)
 
-    if (!isLogin && !formData.email.includes("@")) {
-      setError("Please enter a valid email address")
-      return
-    }
+    try {
+      if (isLogin) {
+        const result = await AuthClient.login(formData.email, formData.password)
 
-    if (isLogin) {
-      const user = authStorage.login(formData.email, formData.password)
-      if (user) {
-        if (!user.isEmailVerified) {
-          setError("Please verify your email address before signing in. Check your inbox for the verification code.")
-          setShowVerification(true)
-          setVerificationEmail(formData.email)
+        if (result.success && result.user) {
+          onLogin(result.user)
+          onClose()
+        } else {
+          if (result.needsVerification) {
+            setShowVerification(true)
+            setVerificationEmail(formData.email)
+          }
+          setError(result.error || "Login failed")
+        }
+      } else {
+        if (!formData.name.trim()) {
+          setError("Name is required")
           return
         }
-        onLogin(user)
-        onClose()
-      } else {
-        setError("Invalid email or password")
-      }
-    } else {
-      if (!formData.name.trim()) {
-        setError("Name is required")
-        return
-      }
 
-      const result = authStorage.register(formData.name, formData.email, formData.password)
-      if (result.success) {
-        setSuccess("Account created! Please check your email for a verification code.")
-        setShowVerification(true)
-        setVerificationEmail(formData.email)
-      } else {
-        setError(result.error || "Registration failed")
+        const result = await AuthClient.register(formData.name, formData.email, formData.password)
+
+        if (result.success) {
+          setSuccess("Account created! Please check your email for a verification code.")
+          setShowVerification(true)
+          setVerificationEmail(formData.email)
+        } else {
+          setError(result.error || "Registration failed")
+        }
       }
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleVerification = (e: React.FormEvent) => {
+  const handleVerification = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setLoading(true)
 
-    if (emailVerification.verifyCode(verificationEmail, verificationCode)) {
-      setSuccess("Email verified successfully! You can now sign in.")
-      setShowVerification(false)
-      setIsLogin(true)
-      setVerificationCode("")
-      setFormData({ name: "", email: verificationEmail, password: "" })
-    } else {
-      setError("Invalid or expired verification code. Please try again.")
+    try {
+      const result = await AuthClient.verifyEmail(verificationEmail, verificationCode)
+
+      if (result.success) {
+        setSuccess("Email verified successfully! You can now sign in.")
+        setShowVerification(false)
+        setIsLogin(true)
+        setVerificationCode("")
+        setFormData({ name: "", email: verificationEmail, password: "" })
+      } else {
+        setError(result.error || "Verification failed")
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleBypassVerification = () => {
     // Force verify the email for testing purposes
-    emailVerification.verifyCode(verificationEmail, "BYPASS")
+    AuthClient.verifyEmail(verificationEmail, "BYPASS")
     setSuccess("Email verification bypassed for testing! You can now sign in.")
     setShowVerification(false)
     setIsLogin(true)
@@ -97,8 +105,8 @@ export function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) {
   }
 
   const handleResendCode = () => {
-    const newCode = emailVerification.generateVerificationCode()
-    if (emailVerification.sendVerificationEmail(verificationEmail, newCode)) {
+    const newCode = AuthClient.generateVerificationCode()
+    if (AuthClient.sendVerificationEmail(verificationEmail, newCode)) {
       setSuccess("New verification code sent to your email!")
       setError("")
     }
@@ -137,8 +145,8 @@ export function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) {
               {error && <p className="text-sm text-red-600">{error}</p>}
               {success && <p className="text-sm text-green-600">{success}</p>}
               <div className="flex gap-2">
-                <Button type="submit" className="flex-1">
-                  Verify Email
+                <Button type="submit" className="flex-1" disabled={loading}>
+                  {loading ? "Verifying..." : "Verify Email"}
                 </Button>
                 <Button type="button" variant="outline" onClick={onClose}>
                   Cancel
@@ -162,7 +170,7 @@ export function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) {
             <div className="mt-2 text-center">
               <p className="text-xs text-gray-500">Check your spam folder if you don't see the email</p>
               <p className="text-xs text-orange-500 mt-1">
-                Note: Email system ready for production. Currently simulated for testing.
+                Note: Check console for verification code during development
               </p>
             </div>
           </CardContent>
@@ -217,8 +225,8 @@ export function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) {
             {error && <p className="text-sm text-red-600">{error}</p>}
             {success && <p className="text-sm text-green-600">{success}</p>}
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">
-                {isLogin ? "Sign In" : "Create Account"}
+              <Button type="submit" className="flex-1" disabled={loading}>
+                {loading ? (isLogin ? "Signing In..." : "Creating Account...") : isLogin ? "Sign In" : "Create Account"}
               </Button>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel

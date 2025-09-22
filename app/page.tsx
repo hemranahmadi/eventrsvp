@@ -8,7 +8,7 @@ import { EventList } from "@/components/event-list"
 import { EventDashboard } from "@/components/event-dashboard"
 import { AuthModal } from "@/components/auth-modal"
 import type { Event } from "@/lib/types"
-import { authStorage, type User } from "@/lib/auth"
+import { AuthClient, type User } from "@/lib/auth-client"
 import { Plus, Calendar, LogIn, LogOut, UserIcon, Crown, Settings, ChevronDown } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -29,10 +29,14 @@ export default function HomePage() {
   useEffect(() => {
     setIsMounted(true)
 
-    const existingUser = authStorage.getUser()
-    if (existingUser) {
-      setUser(existingUser)
+    const loadUser = async () => {
+      const existingUser = await AuthClient.getCurrentUser()
+      if (existingUser) {
+        setUser(existingUser)
+      }
     }
+
+    loadUser()
 
     const checkPremiumStatus = () => {
       const premiumStatus = localStorage.getItem("user_premium") === "true"
@@ -81,9 +85,9 @@ export default function HomePage() {
     setUser(loggedInUser)
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     console.log("[v0] Logout clicked")
-    authStorage.removeUser()
+    await AuthClient.logout()
     setUser(null)
     setCurrentView("list")
     setIsDropdownOpen(false)
@@ -214,16 +218,16 @@ export default function HomePage() {
           </div>
         ) : (
           <>
-            {currentView === "list" && <EventList onSelectEvent={handleSelectEvent} userId={user.id} />}
+            {currentView === "list" && <EventList onSelectEvent={handleSelectEvent} userId={user.id.toString()} />}
 
-            {currentView === "create" && <EventForm onEventCreated={handleEventCreated} userId={user.id} />}
+            {currentView === "create" && <EventForm onEventCreated={handleEventCreated} userId={user.id.toString()} />}
 
             {currentView === "dashboard" && selectedEvent && (
               <EventDashboard
                 event={selectedEvent}
                 onBack={() => setCurrentView("list")}
                 onEventUpdated={handleEventUpdated}
-                userId={user.id}
+                userId={user.id.toString()}
               />
             )}
           </>
