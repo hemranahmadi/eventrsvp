@@ -3,14 +3,12 @@ import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
-import "./globals.css"
-import { Toaster } from "@/components/ui/toaster"
-import { Providers } from "./providers"
 import { Suspense } from "react"
+import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
+  title: "EventRSVP",
+  description: "Simple event management and RSVP collection",
   generator: "v0.app",
 }
 
@@ -20,14 +18,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
-      <body>
-        <Suspense fallback={null}>
-          <Providers>
-            {children}
-            <Toaster />
-          </Providers>
-        </Suspense>
+    <html lang="en">
+      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+        <Suspense fallback={null}>{children}</Suspense>
         <Analytics />
       </body>
     </html>
