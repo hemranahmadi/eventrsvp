@@ -37,9 +37,13 @@ export function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) {
     setSuccess("")
     setLoading(true)
 
+    console.log("[v0] Form submission started", { isLogin, email: formData.email })
+
     try {
       if (isLogin) {
+        console.log("[v0] Attempting login")
         const result = await AuthClient.login(formData.email, formData.password)
+        console.log("[v0] Login result:", result)
 
         if (result.success && result.user) {
           onLogin(result.user)
@@ -57,7 +61,9 @@ export function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) {
           return
         }
 
+        console.log("[v0] Attempting registration")
         const result = await AuthClient.register(formData.name, formData.email, formData.password)
+        console.log("[v0] Registration result:", result)
 
         if (result.success) {
           setSuccess("Account created! Please check your email for a verification code.")

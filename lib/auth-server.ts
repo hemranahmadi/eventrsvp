@@ -46,35 +46,51 @@ export class AuthService {
   }
 
   static async register(name: string, email: string, password: string): Promise<AuthResult> {
-    const client = await pool.connect()
+    console.log("[v0] Starting registration for:", email)
+
+    let client
+    try {
+      client = await pool.connect()
+      console.log("[v0] Database connection established")
+    } catch (error) {
+      console.error("[v0] Database connection failed:", error)
+      return { success: false, error: "Database connection failed" }
+    }
 
     try {
       // Check if user already exists
+      console.log("[v0] Checking if user exists:", email)
       const existingUser = await client.query("SELECT id FROM users WHERE email = $1", [email])
       if (existingUser.rows.length > 0) {
+        console.log("[v0] User already exists:", email)
         return { success: false, error: "User with this email already exists" }
       }
 
       // Validate password
       if (password.length < 6) {
+        console.log("[v0] Password too short")
         return { success: false, error: "Password must be at least 6 characters long" }
       }
 
       // Hash password
+      console.log("[v0] Hashing password")
       const passwordHash = await this.hashPassword(password)
 
       // Create user
+      console.log("[v0] Creating user in database")
       const result = await client.query(
         "INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email, email_verified, created_at",
         [name, email, passwordHash],
       )
 
       const user = result.rows[0]
+      console.log("[v0] User created successfully:", user.id)
 
       // Generate verification code
       const verificationCode = this.generateVerificationCode()
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
 
+      console.log("[v0] Creating verification token")
       await client.query("INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)", [
         user.id,
         verificationCode,
@@ -96,10 +112,15 @@ export class AuthService {
         },
       }
     } catch (error) {
-      console.error("Registration error:", error)
-      return { success: false, error: "Registration failed" }
+      console.error("[v0] Registration error:", error)
+      if (error.code === "42P01") {
+        return { success: false, error: "Database tables not found. Please run the setup script first." }
+      }
+      return { success: false, error: "Registration failed: " + error.message }
     } finally {
-      client.release()
+      if (client) {
+        client.release()
+      }
     }
   }
 
