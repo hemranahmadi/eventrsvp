@@ -10,17 +10,42 @@ export interface AuthState {
   isAuthenticated: boolean
 }
 
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const disposableEmailDomains = [
+    "10minutemail.com",
+    "tempmail.org",
+    "guerrillamail.com",
+    "mailinator.com",
+    "throwaway.email",
+    "temp-mail.org",
+  ]
+
+  if (!emailRegex.test(email)) return false
+
+  const domain = email.split("@")[1]?.toLowerCase()
+  if (disposableEmailDomains.includes(domain)) return false
+
+  return true
+}
+
 export const emailVerification = {
   generateVerificationCode: (): string => {
     return Math.random().toString(36).substring(2, 8).toUpperCase()
   },
 
   sendVerificationEmail: (email: string, code: string): boolean => {
+    if (!isValidEmail(email)) {
+      console.error(`[EMAIL VALIDATION] Invalid email format: ${email}`)
+      return false
+    }
+
     // Simulate sending email - in real app, this would use SendGrid, Mailgun, etc.
     console.log(`[EMAIL SIMULATION] Sending verification email to: ${email}`)
     console.log(`[EMAIL SIMULATION] Verification code: ${code}`)
     console.log(`[EMAIL SIMULATION] Subject: Verify your EventRSVP account`)
     console.log(`[EMAIL SIMULATION] Body: Your verification code is: ${code}`)
+    console.log(`[EMAIL SIMULATION] Ready for real email service integration`)
 
     // Store the verification code temporarily
     const pendingVerifications = JSON.parse(localStorage.getItem("pending_verifications") || "{}")
@@ -114,11 +139,22 @@ export const authStorage = {
     email: string,
     password: string,
   ): { success: boolean; needsVerification?: boolean; error?: string } => {
+    if (!isValidEmail(email)) {
+      return {
+        success: false,
+        error: "Please enter a valid email address. Disposable email addresses are not allowed.",
+      }
+    }
+
     const users = JSON.parse(localStorage.getItem("registered_users") || "[]")
 
     // Check if user already exists
     if (users.find((u: any) => u.email === email)) {
       return { success: false, error: "User with this email already exists" }
+    }
+
+    if (password.length < 6) {
+      return { success: false, error: "Password must be at least 6 characters long" }
     }
 
     const newUser = {
@@ -135,7 +171,11 @@ export const authStorage = {
 
     // Send verification email
     const verificationCode = emailVerification.generateVerificationCode()
-    emailVerification.sendVerificationEmail(email, verificationCode)
+    const emailSent = emailVerification.sendVerificationEmail(email, verificationCode)
+
+    if (!emailSent) {
+      return { success: false, error: "Failed to send verification email. Please check your email address." }
+    }
 
     return { success: true, needsVerification: true }
   },

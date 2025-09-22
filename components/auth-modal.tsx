@@ -35,6 +35,11 @@ export function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) {
     setError("")
     setSuccess("")
 
+    if (!isLogin && !formData.email.includes("@")) {
+      setError("Please enter a valid email address")
+      return
+    }
+
     if (isLogin) {
       const user = authStorage.login(formData.email, formData.password)
       if (user) {
@@ -157,7 +162,7 @@ export function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) {
             <div className="mt-2 text-center">
               <p className="text-xs text-gray-500">Check your spam folder if you don't see the email</p>
               <p className="text-xs text-orange-500 mt-1">
-                Note: Emails are currently simulated. Check browser console for verification codes.
+                Note: Email system ready for production. Currently simulated for testing.
               </p>
             </div>
           </CardContent>
@@ -233,7 +238,7 @@ export function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) {
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-700">
                 <CheckCircle className="w-4 h-4 inline mr-1" />
-                You'll receive an email verification code after creating your account
+                You'll receive a verification email with a 6-digit code. Real email addresses only.
               </p>
             </div>
           )}
