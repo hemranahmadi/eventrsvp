@@ -1,7 +1,22 @@
 import { Pool } from "pg"
 
 console.log("[v0] Database URL exists:", !!process.env.EVENTRSVP_DATABASE_URL)
-console.log("[v0] Database URL preview:", process.env.EVENTRSVP_DATABASE_URL?.substring(0, 20) + "...")
+console.log("[v0] Database URL preview:", process.env.EVENTRSVP_DATABASE_URL?.substring(0, 30) + "...")
+
+// Parse and validate the database URL
+const databaseUrl = process.env.EVENTRSVP_DATABASE_URL
+if (!databaseUrl) {
+  console.error("[v0] EVENTRSVP_DATABASE_URL environment variable is not set!")
+}
+
+try {
+  const url = new URL(databaseUrl!)
+  console.log("[v0] Database host:", url.hostname)
+  console.log("[v0] Database port:", url.port)
+  console.log("[v0] Database name:", url.pathname.substring(1))
+} catch (error) {
+  console.error("[v0] Invalid database URL format:", error)
+}
 
 const pool = new Pool({
   connectionString: process.env.EVENTRSVP_DATABASE_URL,
