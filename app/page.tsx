@@ -2,22 +2,22 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { EventForm } from "@/components/event-form"
 import { EventList } from "@/components/event-list"
 import { EventDashboard } from "@/components/event-dashboard"
 import { AuthModal } from "@/components/auth-modal"
 import type { Event } from "@/lib/types"
-import { AuthClient, type User } from "@/lib/auth-client"
 import { Plus, Calendar, LogIn, LogOut, UserIcon, Crown, Settings, ChevronDown } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 type View = "list" | "create" | "dashboard"
 
 export default function HomePage() {
+  const { data: session, status } = useSession()
   const [currentView, setCurrentView] = useState<View>("list")
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
-  const [user, setUser] = useState<User | null>(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [isPremium, setIsPremium] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
@@ -28,15 +28,6 @@ export default function HomePage() {
 
   useEffect(() => {
     setIsMounted(true)
-
-    const loadUser = async () => {
-      const existingUser = await AuthClient.getCurrentUser()
-      if (existingUser) {
-        setUser(existingUser)
-      }
-    }
-
-    loadUser()
 
     const checkPremiumStatus = () => {
       const premiumStatus = localStorage.getItem("user_premium") === "true"
@@ -81,14 +72,13 @@ export default function HomePage() {
     setCurrentView("dashboard")
   }
 
-  const handleLogin = (loggedInUser: User) => {
-    setUser(loggedInUser)
+  const handleLogin = () => {
+    setShowAuthModal(false)
   }
 
   const handleLogout = async () => {
     console.log("[v0] Logout clicked")
-    await AuthClient.logout()
-    setUser(null)
+    await signOut({ callbackUrl: "/" })
     setCurrentView("list")
     setIsDropdownOpen(false)
   }
@@ -108,9 +98,11 @@ export default function HomePage() {
     router.push("/settings")
   }
 
-  if (!isMounted) {
+  if (!isMounted || status === "loading") {
     return <div>Loading...</div>
   }
+
+  const user = session?.user
 
   return (
     <div className="min-h-screen bg-background">
@@ -144,7 +136,15 @@ export default function HomePage() {
                       className="flex items-center gap-2 bg-transparent"
                       onClick={handleDropdownToggle}
                     >
-                      <UserIcon className="h-4 w-4" />
+                      {user.image ? (
+                        <img
+                          src={user.image || "/placeholder.svg"}
+                          alt={user.name || "User"}
+                          className="h-4 w-4 rounded-full"
+                        />
+                      ) : (
+                        <UserIcon className="h-4 w-4" />
+                      )}
                       <span>{user.name}</span>
                       {isPremium && (
                         <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs">
@@ -193,7 +193,7 @@ export default function HomePage() {
         {!user ? (
           <div className="text-center py-12">
             <h2 className="text-2xl font-semibold mb-4">Welcome to EventRSVP</h2>
-            <p className="text-muted-foreground mb-6">Sign in to create and manage your events</p>
+            <p className="text-muted-foreground mb-6">Sign in with Google to create and manage your events</p>
 
             <div className="mb-8">
               <Button size="lg" onClick={() => setShowAuthModal(true)}>
@@ -218,16 +218,16 @@ export default function HomePage() {
           </div>
         ) : (
           <>
-            {currentView === "list" && <EventList onSelectEvent={handleSelectEvent} userId={user.id.toString()} />}
+            {currentView === "list" && <EventList onSelectEvent={handleSelectEvent} userId={user.id!} />}
 
-            {currentView === "create" && <EventForm onEventCreated={handleEventCreated} userId={user.id.toString()} />}
+            {currentView === "create" && <EventForm onEventCreated={handleEventCreated} userId={user.id!} />}
 
             {currentView === "dashboard" && selectedEvent && (
               <EventDashboard
                 event={selectedEvent}
                 onBack={() => setCurrentView("list")}
                 onEventUpdated={handleEventUpdated}
-                userId={user.id.toString()}
+                userId={user.id!}
               />
             )}
           </>
