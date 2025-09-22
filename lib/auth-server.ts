@@ -47,14 +47,24 @@ export class AuthService {
 
   static async register(name: string, email: string, password: string): Promise<AuthResult> {
     console.log("[v0] Starting registration for:", email)
+    console.log("[v0] Environment check - DATABASE_URL exists:", !!process.env.EVENTRSVP_DATABASE_URL)
 
     let client
     try {
+      console.log("[v0] Attempting database connection...")
       client = await pool.connect()
-      console.log("[v0] Database connection established")
+      console.log("[v0] Database connection established successfully")
+
+      await client.query("SELECT NOW()")
+      console.log("[v0] Database query test successful")
     } catch (error) {
       console.error("[v0] Database connection failed:", error)
-      return { success: false, error: "Database connection failed" }
+      console.error("[v0] Error details:", {
+        message: error.message,
+        code: error.code,
+        stack: error.stack,
+      })
+      return { success: false, error: `Database connection failed: ${error.message}` }
     }
 
     try {
