@@ -49,7 +49,7 @@ export function EventForm({
       time: formData.time,
       location: formData.location,
       guest_limit: formData.guestLimit ? Number.parseInt(formData.guestLimit) : undefined,
-      rsvp_deadline: formData.deadline || undefined, // Changed from 'deadline' to 'rsvp_deadline'
+      deadline: formData.deadline || undefined, // Changed from 'rsvp_deadline' to 'deadline'
       host_name: userName,
       host_email: userEmail,
     }

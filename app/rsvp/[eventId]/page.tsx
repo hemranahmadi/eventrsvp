@@ -36,8 +36,8 @@ export default function RSVPPage() {
       const eventData = await getEvent(eventId)
       setEvent(eventData)
 
-      if (eventData?.rsvp_deadline) {
-        const deadlineDate = new Date(eventData.rsvp_deadline)
+      if (eventData?.deadline) {
+        const deadlineDate = new Date(eventData.deadline)
         const now = new Date()
         setIsDeadlinePassed(now > deadlineDate)
       }
@@ -51,7 +51,7 @@ export default function RSVPPage() {
           setFormData({
             guestName: existing.guest_name,
             guestEmail: existing.guest_email,
-            attending: existing.status === "attending" ? "yes" : "no",
+            attending: existing.attending ? "yes" : "no",
             partySize: existing.party_size.toString(),
           })
         }
@@ -72,9 +72,9 @@ export default function RSVPPage() {
       event_id: event.id,
       guest_name: formData.guestName,
       guest_email: formData.guestEmail,
-      status: formData.attending === "yes" ? "attending" : "not_attending",
+      attending: formData.attending === "yes",
       party_size: Number.parseInt(formData.partySize),
-      dietary_restrictions: "",
+      message: "",
     }
 
     await saveRSVP(rsvpData)
@@ -152,9 +152,9 @@ export default function RSVPPage() {
             <p className="text-muted-foreground text-center mb-4">
               The RSVP deadline for this event has passed and responses are no longer being accepted.
             </p>
-            {event.rsvp_deadline && (
+            {event.deadline && (
               <p className="text-sm text-muted-foreground text-center">
-                Deadline was: {formatDeadline(event.rsvp_deadline)}
+                Deadline was: {formatDeadline(event.deadline)}
               </p>
             )}
           </CardContent>
@@ -202,10 +202,10 @@ export default function RSVPPage() {
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   {event.location}
                 </div>
-                {event.rsvp_deadline && (
+                {event.deadline && (
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    RSVP by: {formatDeadline(event.rsvp_deadline)}
+                    RSVP by: {formatDeadline(event.deadline)}
                   </div>
                 )}
               </div>
