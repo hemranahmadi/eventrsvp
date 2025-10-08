@@ -91,7 +91,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
 
   const attendingRSVPs = rsvps.filter((rsvp) => rsvp.attending)
   const notAttendingRSVPs = rsvps.filter((rsvp) => !rsvp.attending)
-  const totalAttending = attendingRSVPs.reduce((sum, rsvp) => sum + rsvp.partySize, 0)
+  const totalAttending = attendingRSVPs.reduce((sum, rsvp) => sum + (rsvp.partySize || 0), 0)
   const totalNotAttending = notAttendingRSVPs.length
 
   const guestPortalUrl = `${window.location.origin}/rsvp/${event.id}`
@@ -442,7 +442,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
             {loading ? (
               <div className="text-2xl font-bold">...</div>
             ) : (
-              <div className="text-2xl font-bold">{rsvps.length}</div>
+              <div className="text-2xl font-bold">{rsvps.length || 0}</div>
             )}
             <p className="text-xs text-muted-foreground">Guest responses received</p>
           </CardContent>
@@ -462,7 +462,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
                 </div>
               </div>
             )}
-            <div className="text-2xl font-bold text-green-600">{totalAttending}</div>
+            <div className="text-2xl font-bold text-green-600">{totalAttending || 0}</div>
             <p className="text-xs text-muted-foreground">Total guests attending</p>
           </CardContent>
         </Card>
@@ -481,7 +481,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
                 </div>
               </div>
             )}
-            <div className="text-2xl font-bold text-red-600">{totalNotAttending}</div>
+            <div className="text-2xl font-bold text-red-600">{totalNotAttending || 0}</div>
             <p className="text-xs text-muted-foreground">Guests not attending</p>
           </CardContent>
         </Card>
@@ -510,8 +510,8 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
               {loading
                 ? "..."
                 : rsvps.length > 0
-                  ? Math.round(((attendingRSVPs.length + notAttendingRSVPs.length) / rsvps.length) * 100)
-                  : 0}
+                  ? `${Math.round(((attendingRSVPs.length + notAttendingRSVPs.length) / rsvps.length) * 100)}`
+                  : "0"}
               %
             </div>
             <p className="text-xs text-muted-foreground">Of total invitations</p>
