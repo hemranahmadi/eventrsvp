@@ -49,11 +49,9 @@ export function EventForm({
       time: formData.time,
       location: formData.location,
       guest_limit: formData.guestLimit ? Number.parseInt(formData.guestLimit) : undefined,
-      deadline: formData.deadline || undefined,
+      rsvp_deadline: formData.deadline || undefined, // Changed from 'deadline' to 'rsvp_deadline'
       host_name: userName,
       host_email: userEmail,
-      host_user_id: userId,
-      active: true,
     }
 
     const event = await saveEvent(eventData, userId)
