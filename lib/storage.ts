@@ -58,16 +58,6 @@ export async function getEvent(id: string): Promise<Event | null> {
   return data
 }
 
-export async function updateEventStatus(eventId: string, userId: string, active: boolean): Promise<void> {
-  const supabase = createBrowserClient()
-
-  const { error } = await supabase.from("events").update({ active }).eq("id", eventId).eq("host_id", userId)
-
-  if (error) {
-    console.error("Error updating event status:", error)
-  }
-}
-
 export async function deleteEvent(eventId: string, userId: string): Promise<void> {
   const supabase = createBrowserClient()
 

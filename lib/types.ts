@@ -7,11 +7,11 @@ export interface Event {
   location: string
   host_name: string
   host_email: string
-  host_user_id: string
+  host_id: string // Changed from host_user_id to match database
   created_at: string
-  active: boolean
+  updated_at?: string
   guest_limit?: number
-  deadline?: string
+  rsvp_deadline?: string // Changed from deadline to match database
 }
 
 export interface RSVP {
@@ -19,10 +19,11 @@ export interface RSVP {
   event_id: string
   guest_name: string
   guest_email: string
-  attending: boolean
+  status: string // Changed from attending boolean to status string
   party_size: number
-  message?: string
+  dietary_restrictions?: string // Changed from message to match database
   created_at: string
+  updated_at?: string
 }
 
 export interface User {
