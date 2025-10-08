@@ -5,21 +5,27 @@ export interface Event {
   date: string
   time: string
   location: string
-  hostName: string
-  hostEmail: string
-  createdAt: string
-  active: boolean // Added active status field for event management
-  guestLimit?: number // Added optional guest limit field
-  deadline?: string // Optional deadline for RSVPs (ISO date string)
+  host_name: string
+  host_email: string
+  host_user_id: string
+  created_at: string
+  active: boolean
+  guest_limit?: number
+  deadline?: string
 }
 
 export interface RSVP {
   id: string
-  eventId: string
-  guestName: string
-  guestEmail: string
+  event_id: string
+  guest_name: string
+  guest_email: string
   attending: boolean
-  partySize: number
+  party_size: number
   message?: string
-  createdAt: string
+  created_at: string
+}
+
+export interface User {
+  id: string
+  email: string
 }

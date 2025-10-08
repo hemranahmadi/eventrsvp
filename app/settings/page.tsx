@@ -6,13 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { authStorage, type User } from "@/lib/auth"
-import { ArrowLeft, UserIcon, Crown, CreditCard, AlertTriangle, X } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
+import { ArrowLeft, UserIcon, Crown, CreditCard, AlertTriangle, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<User | null>(null)
+  const { user, isAuthenticated, isLoading } = useAuth()
   const [isPremium, setIsPremium] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -22,26 +22,22 @@ export default function SettingsPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const existingUser = authStorage.getUser()
-    if (!existingUser) {
+    if (!isLoading && !isAuthenticated) {
       router.push("/")
       return
     }
 
-    setUser(existingUser)
-    setName(existingUser.name)
-    setEmail(existingUser.email)
+    if (user) {
+      setName(user.name)
+      setEmail(user.email)
+    }
 
     const premiumStatus = localStorage.getItem("user_premium") === "true"
     setIsPremium(premiumStatus)
-  }, [router])
+  }, [user, isAuthenticated, isLoading, router])
 
-  const handleUpdateAccount = () => {
+  const handleUpdateAccount = async () => {
     if (!user) return
-
-    const updatedUser = { ...user, name, email }
-    authStorage.setUser(updatedUser)
-    setUser(updatedUser)
 
     toast({
       title: "Account Updated",
@@ -82,7 +78,18 @@ export default function SettingsPage() {
     }, 30000)
   }
 
-  if (!user) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated || !user) {
     return null
   }
 

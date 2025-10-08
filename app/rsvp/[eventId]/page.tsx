@@ -31,34 +31,39 @@ export default function RSVPPage() {
   })
 
   useEffect(() => {
-    const eventData = getEvent(eventId)
-    setEvent(eventData)
-    setLoading(false)
+    const loadEventData = async () => {
+      setLoading(true)
+      const eventData = await getEvent(eventId)
+      setEvent(eventData)
 
-    if (eventData?.deadline) {
-      const deadlineDate = new Date(eventData.deadline)
-      const now = new Date()
-      setIsDeadlinePassed(now > deadlineDate)
-    }
-
-    // Check if user already submitted RSVP
-    const rsvps = getRSVPsForEvent(eventId)
-    const existingEmail = localStorage.getItem(`rsvp-email-${eventId}`)
-    if (existingEmail) {
-      const existing = rsvps.find((r) => r.guestEmail === existingEmail)
-      if (existing) {
-        setExistingRSVP(existing)
-        setFormData({
-          guestName: existing.guestName,
-          guestEmail: existing.guestEmail,
-          attending: existing.attending ? "yes" : "no",
-          partySize: existing.partySize.toString(),
-        })
+      if (eventData?.deadline) {
+        const deadlineDate = new Date(eventData.deadline)
+        const now = new Date()
+        setIsDeadlinePassed(now > deadlineDate)
       }
+
+      const rsvps = await getRSVPsForEvent(eventId)
+      const existingEmail = localStorage.getItem(`rsvp-email-${eventId}`)
+      if (existingEmail) {
+        const existing = rsvps.find((r) => r.guestEmail === existingEmail)
+        if (existing) {
+          setExistingRSVP(existing)
+          setFormData({
+            guestName: existing.guestName,
+            guestEmail: existing.guestEmail,
+            attending: existing.attending ? "yes" : "no",
+            partySize: existing.partySize.toString(),
+          })
+        }
+      }
+
+      setLoading(false)
     }
+
+    loadEventData()
   }, [eventId])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!event) return
@@ -74,7 +79,7 @@ export default function RSVPPage() {
       createdAt: existingRSVP?.createdAt || new Date().toISOString(),
     }
 
-    saveRSVP(rsvp)
+    await saveRSVP(rsvp)
     localStorage.setItem(`rsvp-email-${eventId}`, formData.guestEmail)
     setSubmitted(true)
 

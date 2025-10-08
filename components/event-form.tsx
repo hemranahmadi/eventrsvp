@@ -9,14 +9,21 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { saveEvent } from "@/lib/storage"
-import { authStorage } from "@/lib/auth"
 import type { Event } from "@/lib/types"
 
 interface EventFormProps {
   onEventCreated: (event: Event) => void
+  userId: string
+  userName?: string
+  userEmail?: string
 }
 
-export function EventForm({ onEventCreated }: EventFormProps) {
+export function EventForm({
+  onEventCreated,
+  userId,
+  userName = "Event Host",
+  userEmail = "host@example.com",
+}: EventFormProps) {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -27,38 +34,44 @@ export function EventForm({ onEventCreated }: EventFormProps) {
     deadline: "", // Added deadline field to form state
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const currentUser = authStorage.getUser()
-    if (!currentUser) {
+    if (!userId) {
       alert("Please sign in to create events")
       return
     }
 
-    const event: Event = {
-      id: crypto.randomUUID(),
-      ...formData,
-      guestLimit: formData.guestLimit ? Number.parseInt(formData.guestLimit) : undefined,
-      deadline: formData.deadline || undefined, // Added deadline to event object
-      hostName: currentUser.name,
-      hostEmail: currentUser.email,
-      createdAt: new Date().toISOString(),
+    const eventData = {
+      title: formData.title,
+      description: formData.description,
+      date: formData.date,
+      time: formData.time,
+      location: formData.location,
+      guest_limit: formData.guestLimit ? Number.parseInt(formData.guestLimit) : undefined,
+      deadline: formData.deadline || undefined,
+      host_name: userName,
+      host_email: userEmail,
+      host_user_id: userId,
       active: true,
     }
 
-    saveEvent(event, currentUser.id)
-    onEventCreated(event)
+    const event = await saveEvent(eventData, userId)
 
-    setFormData({
-      title: "",
-      description: "",
-      date: "",
-      time: "",
-      location: "",
-      guestLimit: "", // Reset guest limit field
-      deadline: "", // Reset deadline field
-    })
+    if (event) {
+      onEventCreated(event)
+      setFormData({
+        title: "",
+        description: "",
+        date: "",
+        time: "",
+        location: "",
+        guestLimit: "",
+        deadline: "",
+      })
+    } else {
+      alert("Failed to create event. Please try again.")
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

@@ -15,27 +15,28 @@ interface EventListProps {
 
 export function EventList({ onSelectEvent, userId }: EventListProps) {
   const [events, setEvents] = useState<Event[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const loadEvents = () => {
-    console.log("[v0] Fetching events for user:", userId)
-    const userEvents = getUserEvents(userId)
-    console.log("[v0] Found events:", userEvents)
+  const loadEvents = async () => {
+    setLoading(true)
+    const userEvents = await getUserEvents(userId)
     setEvents(userEvents)
+    setLoading(false)
   }
 
   useEffect(() => {
     loadEvents()
   }, [userId])
 
-  const handleToggleStatus = (eventId: string, currentStatus: boolean) => {
-    updateEventStatus(eventId, userId, !currentStatus)
-    loadEvents() // Refresh the list
+  const handleToggleStatus = async (eventId: string, currentStatus: boolean) => {
+    await updateEventStatus(eventId, userId, !currentStatus)
+    loadEvents()
   }
 
-  const handleDeleteEvent = (eventId: string) => {
+  const handleDeleteEvent = async (eventId: string) => {
     if (confirm("Are you sure you want to delete this event? This will also delete all RSVPs.")) {
-      deleteEvent(eventId, userId)
-      loadEvents() // Refresh the list
+      await deleteEvent(eventId, userId)
+      loadEvents()
     }
   }
 
@@ -49,6 +50,17 @@ export function EventList({ onSelectEvent, userId }: EventListProps) {
       hour: "numeric",
       minute: "2-digit",
     })
+  }
+
+  if (loading) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+          <p className="text-muted-foreground">Loading your events...</p>
+        </CardContent>
+      </Card>
+    )
   }
 
   if (events.length === 0) {

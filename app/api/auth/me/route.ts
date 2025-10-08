@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { AuthService } from "@/lib/auth-server"
+import { AuthServerService } from "@/lib/auth-server"
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,15 +9,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
-    const user = await AuthService.getUserFromToken(token)
+    const user = await AuthServerService.getUserFromToken(token)
 
     if (!user) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 })
     }
 
     return NextResponse.json({ user })
   } catch (error) {
-    console.error("Get user API error:", error)
+    console.error("Get current user API error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
