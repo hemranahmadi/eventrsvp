@@ -9,7 +9,7 @@ export async function saveEvent(event: Omit<Event, "id" | "created_at">, userId:
     .from("events")
     .insert({
       ...event,
-      host_user_id: userId,
+      host_id: userId,
     })
     .select()
     .single()
@@ -30,7 +30,7 @@ export async function getEvents(userId?: string): Promise<Event[]> {
   const { data, error } = await supabase
     .from("events")
     .select("*")
-    .eq("host_user_id", userId)
+    .eq("host_id", userId)
     .order("created_at", { ascending: false })
 
   if (error) {
@@ -61,7 +61,7 @@ export async function getEvent(id: string): Promise<Event | null> {
 export async function updateEventStatus(eventId: string, userId: string, active: boolean): Promise<void> {
   const supabase = createBrowserClient()
 
-  const { error } = await supabase.from("events").update({ active }).eq("id", eventId).eq("host_user_id", userId)
+  const { error } = await supabase.from("events").update({ active }).eq("id", eventId).eq("host_id", userId)
 
   if (error) {
     console.error("Error updating event status:", error)
@@ -71,7 +71,7 @@ export async function updateEventStatus(eventId: string, userId: string, active:
 export async function deleteEvent(eventId: string, userId: string): Promise<void> {
   const supabase = createBrowserClient()
 
-  const { error } = await supabase.from("events").delete().eq("id", eventId).eq("host_user_id", userId)
+  const { error } = await supabase.from("events").delete().eq("id", eventId).eq("host_id", userId)
 
   if (error) {
     console.error("Error deleting event:", error)
@@ -81,7 +81,7 @@ export async function deleteEvent(eventId: string, userId: string): Promise<void
 export async function updateEvent(eventId: string, userId: string, updatedEvent: Partial<Event>): Promise<void> {
   const supabase = createBrowserClient()
 
-  const { error } = await supabase.from("events").update(updatedEvent).eq("id", eventId).eq("host_user_id", userId)
+  const { error } = await supabase.from("events").update(updatedEvent).eq("id", eventId).eq("host_id", userId)
 
   if (error) {
     console.error("Error updating event:", error)
@@ -99,9 +99,9 @@ export async function saveRSVP(rsvp: Omit<RSVP, "id" | "created_at">): Promise<R
         event_id: rsvp.event_id,
         guest_name: rsvp.guest_name,
         guest_email: rsvp.guest_email,
-        attending: rsvp.attending,
+        status: rsvp.status,
         party_size: rsvp.party_size,
-        message: rsvp.message,
+        dietary_restrictions: rsvp.dietary_restrictions,
       },
       {
         onConflict: "event_id,guest_email",
