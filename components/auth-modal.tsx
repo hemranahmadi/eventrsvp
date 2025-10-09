@@ -155,11 +155,21 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </div>
         </form>
 
-        <div className="mt-4 text-center">
+        <div className="mt-4 text-center space-y-2">
+          <button
+            type="button"
+            onClick={() => {
+              onClose()
+              router.push("/auth/forgot-password")
+            }}
+            className="text-sm text-blue-600 hover:underline block w-full"
+          >
+            Forgot password?
+          </button>
           <button
             type="button"
             onClick={() => switchMode("register")}
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-blue-600 hover:underline block w-full"
           >
             Don't have an account? Sign up
           </button>
