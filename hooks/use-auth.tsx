@@ -43,6 +43,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const supabase = createClient()
 
     const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session) {
+      setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      })
+      return
+    }
+
+    // Only call getUser if we have a valid session
+    const {
       data: { user },
       error,
     } = await supabase.auth.getUser()
