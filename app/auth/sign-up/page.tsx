@@ -17,7 +17,6 @@ export default function SignUpPage() {
   const [name, setName] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
   const router = useRouter()
 
   const supabase = createBrowserClient(
@@ -35,41 +34,20 @@ export default function SignUpPage() {
         email,
         password,
         options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || window.location.origin,
           data: {
             name,
           },
+          emailRedirectTo: undefined, // Disable email link, use OTP instead
         },
       })
 
       if (error) throw error
 
-      setSuccess(true)
+      router.push(`/auth/verify?email=${encodeURIComponent(email)}`)
     } catch (err: any) {
       setError(err.message || "Failed to sign up")
-    } finally {
       setLoading(false)
     }
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Check Your Email</CardTitle>
-            <CardDescription>
-              We've sent you a confirmation email. Please check your inbox and click the link to verify your account.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => router.push("/auth/login")} className="w-full">
-              Go to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
   }
 
   return (
