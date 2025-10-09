@@ -57,15 +57,19 @@ export default function VerifyPage() {
     setError("")
 
     try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
+      const { error } = await supabase.auth.signInWithOtp({
         email: email!,
+        options: {
+          shouldCreateUser: false,
+        },
       })
 
       if (error) throw error
 
+      setError("")
       alert("Verification code resent! Check your email.")
     } catch (err: any) {
+      console.error("[v0] Resend error:", err)
       setError(err.message || "Failed to resend code")
     } finally {
       setResending(false)

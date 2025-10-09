@@ -30,21 +30,35 @@ export default function SignUpPage() {
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             name,
           },
-          emailRedirectTo: undefined, // Disable email link, use OTP instead
+          emailRedirectTo: undefined,
         },
       })
 
-      if (error) throw error
+      if (signUpError) throw signUpError
+
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false, // Don't create user, just send OTP
+        },
+      })
+
+      if (otpError) {
+        console.log("[v0] OTP send error:", otpError)
+        // If OTP fails, still redirect to verify page
+        // User can use resend button
+      }
 
       router.push(`/auth/verify?email=${encodeURIComponent(email)}`)
     } catch (err: any) {
+      console.error("[v0] Sign up error:", err)
       setError(err.message || "Failed to sign up")
       setLoading(false)
     }
