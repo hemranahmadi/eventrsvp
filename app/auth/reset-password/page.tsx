@@ -16,6 +16,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [hasValidSession, setHasValidSession] = useState(false)
   const router = useRouter()
 
   const supabase = createBrowserClient(
@@ -24,10 +25,12 @@ export default function ResetPasswordPage() {
   )
 
   useEffect(() => {
-    // Check if user has a valid session from the reset link
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         setError("Invalid or expired reset link. Please request a new one.")
+        setHasValidSession(false)
+      } else {
+        setHasValidSession(true)
       }
     })
   }, [supabase.auth])
@@ -56,6 +59,7 @@ export default function ResetPasswordPage() {
       if (error) throw error
 
       setSuccess(true)
+      await supabase.auth.signOut()
       setTimeout(() => {
         router.push("/auth/login")
       }, 2000)
@@ -92,36 +96,45 @@ export default function ResetPasswordPage() {
           <CardDescription>Enter your new password below</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter new password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
+          {!hasValidSession && error ? (
+            <div className="space-y-4">
+              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>
+              <Link href="/auth/forgot-password">
+                <Button className="w-full">Request New Reset Link</Button>
+              </Link>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
-            {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Resetting..." : "Reset Password"}
-            </Button>
-          </form>
+          ) : (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">New Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter new password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+              {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Resetting..." : "Reset Password"}
+              </Button>
+            </form>
+          )}
           <div className="mt-4 text-center text-sm">
             <Link href="/auth/login" className="text-blue-600 hover:underline">
               Back to Login
