@@ -76,23 +76,21 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     try {
       const supabase = createClient()
 
-      const { error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signInWithOtp({
         email: registerData.email,
-        password: registerData.password,
         options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || window.location.origin,
+          shouldCreateUser: true,
           data: {
             name: registerData.name,
+            password: registerData.password,
           },
         },
       })
 
       if (error) throw error
 
-      setSuccess("Account created! Please check your email to verify your account.")
-      setTimeout(() => {
-        switchMode("login")
-      }, 3000)
+      onClose()
+      router.push(`/auth/verify?email=${encodeURIComponent(registerData.email)}`)
     } catch (err: any) {
       setError(err.message || "Registration failed")
     } finally {
