@@ -19,14 +19,18 @@ export async function checkPremiumStatus(): Promise<boolean> {
       .from("user_profiles")
       .select("subscription_status")
       .eq("id", user.id)
-      .single()
+      .maybeSingle()
 
     if (error) {
       console.error("[v0] Error checking premium status:", error.message)
       return false
     }
 
-    return data?.subscription_status === "active"
+    if (!data) {
+      return false
+    }
+
+    return data.subscription_status === "active"
   } catch (error) {
     console.error("[v0] Error in checkPremiumStatus:", error)
     return false
