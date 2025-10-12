@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("")
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [isActivating, setIsActivating] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
 
@@ -83,20 +84,29 @@ export default function SettingsPage() {
 
   const handleUpgrade = async () => {
     setShowPaymentModal(true)
+  }
 
-    setTimeout(async () => {
-      if (showPaymentModal) {
-        const result = await activatePremium()
-        if (result.success) {
-          setIsPremium(true)
-          setShowPaymentModal(false)
-          toast({
-            title: "Payment Successful!",
-            description: "Welcome to Premium! All features are now unlocked.",
-          })
-        }
-      }
-    }, 30000)
+  const handleManualActivation = async () => {
+    setIsActivating(true)
+
+    const result = await activatePremium()
+
+    if (result.success) {
+      setIsPremium(true)
+      setShowPaymentModal(false)
+      toast({
+        title: "Premium Activated!",
+        description: "Welcome to Premium! All features are now unlocked.",
+      })
+    } else {
+      toast({
+        title: "Activation Failed",
+        description: result.error || "Failed to activate premium. Please try again.",
+        variant: "destructive",
+      })
+    }
+
+    setIsActivating(false)
   }
 
   if (isLoading) {
@@ -280,7 +290,7 @@ export default function SettingsPage() {
       {/* Embedded Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl h-[600px] relative">
+          <div className="bg-white rounded-lg w-full max-w-2xl h-[600px] relative flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="text-lg font-semibold">Upgrade to Premium</h3>
               <Button variant="ghost" size="sm" onClick={() => setShowPaymentModal(false)} className="h-8 w-8 p-0">
@@ -289,9 +299,24 @@ export default function SettingsPage() {
             </div>
             <iframe
               src="https://square.link/u/wbf4KIie"
-              className="w-full h-[calc(100%-60px)] border-0"
+              className="w-full flex-1 border-0 min-h-[500px]"
               title="Square Payment"
             />
+            <div className="p-4 border-t bg-muted/50">
+              <p className="text-sm text-muted-foreground mb-3">
+                After completing your payment on Square, click the button below to activate your premium features.
+              </p>
+              <Button onClick={handleManualActivation} disabled={isActivating} className="w-full">
+                {isActivating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Activating Premium...
+                  </>
+                ) : (
+                  "I've Completed Payment - Activate Premium"
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       )}
