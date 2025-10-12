@@ -46,27 +46,30 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "No customer email" }, { status: 400 })
         }
 
+        // Update user subscription status in Supabase
         const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-        // Find user by email in auth.users
-        const { data: authUser, error: authError } = await supabase.auth.admin.listUsers()
+        const { data: user, error: fetchError } = await supabase
+          .from("users")
+          .select("id, email")
+          .eq("email", customerEmail)
+          .single()
 
-        const user = authUser?.users?.find((u) => u.email === customerEmail)
-
-        if (!user) {
+        if (fetchError || !user) {
           console.error("[v0] User not found for email:", customerEmail)
           return NextResponse.json({ error: "User not found" }, { status: 404 })
         }
 
-        // Upsert subscription status to user_profiles
-        const { error: updateError } = await supabase.from("user_profiles").upsert({
-          id: user.id,
-          is_premium: true,
-          subscription_status: "active",
-          subscription_started_at: new Date().toISOString(),
-          square_customer_id: payment.customer_id || null,
-          updated_at: new Date().toISOString(),
-        })
+        // Update subscription status
+        const { error: updateError } = await supabase
+          .from("users")
+          .update({
+            is_premium: true,
+            subscription_status: "active",
+            subscription_started_at: new Date().toISOString(),
+            square_customer_id: payment.customer_id || null,
+          })
+          .eq("id", user.id)
 
         if (updateError) {
           console.error("[v0] Error updating subscription:", updateError)
