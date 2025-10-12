@@ -85,26 +85,22 @@ export default function SettingsPage() {
   const handleUpgrade = async () => {
     setShowPaymentModal(true)
 
-    // Wait for user to complete payment and close modal
-    // When modal closes, automatically activate premium
-    const checkInterval = setInterval(async () => {
-      if (!showPaymentModal) {
-        clearInterval(checkInterval)
-        return
-      }
-
-      // Check if user has closed the payment window (assuming payment completed)
+    const pollInterval = setInterval(async () => {
       const premiumStatus = await checkPremiumStatus()
       if (premiumStatus) {
         setIsPremium(true)
         setShowPaymentModal(false)
-        clearInterval(checkInterval)
+        clearInterval(pollInterval)
         toast({
           title: "Premium Activated!",
-          description: "Welcome to Premium! All features are now unlocked.",
+          description: "Your payment was successful. All premium features are now unlocked.",
         })
       }
-    }, 2000)
+    }, 3000) // Check every 3 seconds
+
+    setTimeout(() => {
+      clearInterval(pollInterval)
+    }, 300000) // 5 minutes
   }
 
   const handleClosePaymentModal = async () => {
