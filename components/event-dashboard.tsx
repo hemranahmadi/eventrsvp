@@ -259,7 +259,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
             </div>
             <div className="flex-1 p-4">
               <iframe
-                src="https://square.link/u/khqXjy2h"
+                src="https://square.link/u/wbf4KIie"
                 className="w-full h-full border-0 rounded"
                 title="Square Payment"
                 allow="payment"

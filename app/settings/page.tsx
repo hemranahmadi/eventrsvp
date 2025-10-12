@@ -59,7 +59,7 @@ export default function SettingsPage() {
   }
 
   const handleManageSubscription = () => {
-    window.open("https://square.link/u/khqXjy2h", "_blank")
+    window.open("https://square.link/u/wbf4KIie", "_blank")
   }
 
   const handleUpgrade = () => {
@@ -267,7 +267,7 @@ export default function SettingsPage() {
               </Button>
             </div>
             <iframe
-              src="https://square.link/u/khqXjy2h"
+              src="https://square.link/u/wbf4KIie"
               className="w-full h-[calc(100%-60px)] border-0"
               title="Square Payment"
             />

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, Crown, ArrowLeft, ExternalLink, CheckCircle } from "lucide-react"
+import { Check, Crown, ArrowLeft, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -36,7 +36,7 @@ export default function UpgradePage() {
     localStorage.setItem("attempted_payment", "true")
     setHasAttemptedPayment(true)
 
-    window.open("https://square.link/u/khqXjy2h", "_blank")
+    window.open("https://square.link/u/wbf4KIie", "_blank")
 
     setTimeout(() => {
       console.log("[v0] Showing activation after timeout")
@@ -134,13 +134,8 @@ export default function UpgradePage() {
         {showActivation && (
           <Card className="border-2 border-green-200 mb-8 bg-green-50">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-green-800 flex items-center justify-center gap-2">
-                <CheckCircle className="h-6 w-6" />
-                Complete Your Activation
-              </CardTitle>
-              <CardDescription className="text-green-700">
-                Click below to activate your premium features after completing payment
-              </CardDescription>
+              <CardTitle className="text-2xl text-center">Premium Features</CardTitle>
+              <CardDescription className="text-center">Everything you need to manage successful events</CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <Button
