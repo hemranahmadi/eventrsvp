@@ -42,6 +42,9 @@ export function EventForm({
       return
     }
 
+    console.log("[v0] Event form data:", formData)
+    console.log("[v0] Deadline value:", formData.deadline)
+
     const eventData = {
       title: formData.title,
       description: formData.description,
@@ -53,6 +56,8 @@ export function EventForm({
       host_name: userName,
       host_email: userEmail,
     }
+
+    console.log("[v0] Event data being saved:", eventData)
 
     const event = await saveEvent(eventData, userId)
 

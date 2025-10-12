@@ -5,6 +5,9 @@ import type { Event, RSVP } from "./types"
 export async function saveEvent(event: Omit<Event, "id" | "created_at">, userId: string): Promise<Event | null> {
   const supabase = createBrowserClient()
 
+  console.log("[v0] Saving event with data:", event)
+  console.log("[v0] Deadline in saveEvent:", event.deadline)
+
   const { data, error } = await supabase
     .from("events")
     .insert({
@@ -19,6 +22,9 @@ export async function saveEvent(event: Omit<Event, "id" | "created_at">, userId:
     console.error("Error saving event:", error)
     return null
   }
+
+  console.log("[v0] Event saved successfully:", data)
+  console.log("[v0] Saved event deadline:", data.deadline)
 
   return data
 }

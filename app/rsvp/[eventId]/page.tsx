@@ -36,9 +36,17 @@ export default function RSVPPage() {
       const eventData = await getEvent(eventId)
       setEvent(eventData)
 
+      console.log("[v0] Loaded event data:", eventData)
+      console.log("[v0] Event deadline:", eventData?.deadline)
+
       if (eventData?.deadline) {
         const deadlineDate = new Date(eventData.deadline)
         const now = new Date()
+
+        console.log("[v0] Deadline date object:", deadlineDate)
+        console.log("[v0] Current date object:", now)
+        console.log("[v0] Is deadline passed?", now > deadlineDate)
+
         setIsDeadlinePassed(now > deadlineDate)
       }
 
