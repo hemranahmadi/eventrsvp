@@ -26,7 +26,11 @@ export async function checkPremiumStatus(): Promise<boolean> {
       return false
     }
 
-    return data?.subscription_status === "active"
+    if (!data) {
+      return false
+    }
+
+    return data.subscription_status === "active"
   } catch (error) {
     console.error("[v0] Error in checkPremiumStatus:", error)
     return false
@@ -50,6 +54,7 @@ export async function activatePremium(): Promise<{ success: boolean; error?: str
 
     const { error } = await supabase.from("user_profiles").upsert({
       id: user.id,
+      is_premium: true,
       subscription_status: "active",
       subscription_started_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
