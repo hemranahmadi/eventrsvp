@@ -152,6 +152,17 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
     })
   }
 
+  const formatDeadline = (deadline: string) => {
+    // Handle both date-only strings (YYYY-MM-DD) and datetime strings (YYYY-MM-DDTHH:MM)
+    const deadlineDate = new Date(deadline)
+    return deadlineDate.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }
+
   const handleEditEvent = async () => {
     const updatedEvent: Event = {
       ...event,
@@ -404,7 +415,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
             {event.deadline && (
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                Deadline: {formatDate(event.deadline.split("T")[0], event.deadline.split("T")[1])}
+                Deadline: {formatDeadline(event.deadline)}
               </div>
             )}
           </div>
