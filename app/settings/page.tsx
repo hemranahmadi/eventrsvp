@@ -84,6 +84,53 @@ export default function SettingsPage() {
 
   const handleUpgrade = async () => {
     setShowPaymentModal(true)
+
+    // Wait for user to complete payment and close modal
+    // When modal closes, automatically activate premium
+    const checkInterval = setInterval(async () => {
+      if (!showPaymentModal) {
+        clearInterval(checkInterval)
+        return
+      }
+
+      // Check if user has closed the payment window (assuming payment completed)
+      const premiumStatus = await checkPremiumStatus()
+      if (premiumStatus) {
+        setIsPremium(true)
+        setShowPaymentModal(false)
+        clearInterval(checkInterval)
+        toast({
+          title: "Premium Activated!",
+          description: "Welcome to Premium! All features are now unlocked.",
+        })
+      }
+    }, 2000)
+  }
+
+  const handleClosePaymentModal = async () => {
+    setShowPaymentModal(false)
+    setIsActivating(true)
+
+    // Give a moment for the payment to process
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    const result = await activatePremium()
+
+    if (result.success) {
+      setIsPremium(true)
+      toast({
+        title: "Premium Activated!",
+        description: "Welcome to Premium! All features are now unlocked.",
+      })
+    } else {
+      toast({
+        title: "Activation Failed",
+        description: result.error || "Failed to activate premium. Please try again.",
+        variant: "destructive",
+      })
+    }
+
+    setIsActivating(false)
   }
 
   const handleManualActivation = async () => {
@@ -293,8 +340,14 @@ export default function SettingsPage() {
           <div className="bg-white rounded-lg w-full max-w-2xl h-[600px] relative flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="text-lg font-semibold">Upgrade to Premium</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowPaymentModal(false)} className="h-8 w-8 p-0">
-                <X className="h-4 w-4" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClosePaymentModal}
+                disabled={isActivating}
+                className="h-8 w-8 p-0"
+              >
+                {isActivating ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
               </Button>
             </div>
             <iframe
@@ -304,7 +357,8 @@ export default function SettingsPage() {
             />
             <div className="p-4 border-t bg-muted/50">
               <p className="text-sm text-muted-foreground mb-3">
-                After completing your payment on Square, click the button below to activate your premium features.
+                After completing your payment on Square, close this window or click the button below to activate your
+                premium features.
               </p>
               <Button onClick={handleManualActivation} disabled={isActivating} className="w-full">
                 {isActivating ? (
