@@ -22,7 +22,7 @@ export async function checkPremiumStatus(): Promise<boolean> {
       .single()
 
     if (error) {
-      console.error("[v0] Error checking premium status:", error.message)
+      console.error("[v0] Error checking premium status:", error)
       return false
     }
 
