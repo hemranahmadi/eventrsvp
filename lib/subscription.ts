@@ -15,9 +15,8 @@ export async function checkPremiumStatus(): Promise<boolean> {
       return false
     }
 
-    // Query the users table for subscription status
     const { data, error } = await supabase
-      .from("users")
+      .from("user_profiles")
       .select("is_premium, subscription_status")
       .eq("id", user.id)
       .single()
@@ -49,14 +48,12 @@ export async function activatePremium(): Promise<{ success: boolean; error?: str
       return { success: false, error: "Not authenticated" }
     }
 
-    const { error } = await supabase
-      .from("users")
-      .update({
-        is_premium: true,
-        subscription_status: "active",
-        subscription_started_at: new Date().toISOString(),
-      })
-      .eq("id", user.id)
+    const { error } = await supabase.from("user_profiles").upsert({
+      id: user.id,
+      is_premium: true,
+      subscription_status: "active",
+      subscription_started_at: new Date().toISOString(),
+    })
 
     if (error) {
       console.error("[v0] Error activating premium:", error)
