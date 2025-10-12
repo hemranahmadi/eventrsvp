@@ -109,28 +109,6 @@ export default function SettingsPage() {
 
   const handleClosePaymentModal = async () => {
     setShowPaymentModal(false)
-    setIsActivating(true)
-
-    // Give a moment for the payment to process
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    const result = await activatePremium()
-
-    if (result.success) {
-      setIsPremium(true)
-      toast({
-        title: "Premium Activated!",
-        description: "Welcome to Premium! All features are now unlocked.",
-      })
-    } else {
-      toast({
-        title: "Activation Failed",
-        description: result.error || "Failed to activate premium. Please try again.",
-        variant: "destructive",
-      })
-    }
-
-    setIsActivating(false)
   }
 
   const handleManualActivation = async () => {
