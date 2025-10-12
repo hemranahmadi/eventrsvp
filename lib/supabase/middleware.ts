@@ -25,9 +25,24 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+  } catch (error) {
+    // If refresh token is invalid, clear the session and continue
+    // This allows the user to access the page as logged out
+    console.log("[v0] Auth error in middleware, clearing session:", error)
+
+    // Clear all auth cookies
+    const authCookies = request.cookies
+      .getAll()
+      .filter((cookie) => cookie.name.includes("supabase") || cookie.name.includes("auth"))
+
+    authCookies.forEach((cookie) => {
+      supabaseResponse.cookies.delete(cookie.name)
+    })
+  }
 
   // Users will see auth modal on homepage instead
 
