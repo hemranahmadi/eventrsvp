@@ -1,0 +1,71 @@
+import { createBrowserClient } from "@supabase/ssr"
+
+export async function checkPremiumStatus(): Promise<boolean> {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return false
+    }
+
+    // Query the users table for subscription status
+    const { data, error } = await supabase
+      .from("users")
+      .select("is_premium, subscription_status")
+      .eq("id", user.id)
+      .single()
+
+    if (error) {
+      console.error("[v0] Error checking premium status:", error)
+      return false
+    }
+
+    return data?.is_premium === true && data?.subscription_status === "active"
+  } catch (error) {
+    console.error("[v0] Error in checkPremiumStatus:", error)
+    return false
+  }
+}
+
+export async function activatePremium(): Promise<{ success: boolean; error?: string }> {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return { success: false, error: "Not authenticated" }
+    }
+
+    const { error } = await supabase
+      .from("users")
+      .update({
+        is_premium: true,
+        subscription_status: "active",
+        subscription_started_at: new Date().toISOString(),
+      })
+      .eq("id", user.id)
+
+    if (error) {
+      console.error("[v0] Error activating premium:", error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error("[v0] Error in activatePremium:", error)
+    return { success: false, error: "Failed to activate premium" }
+  }
+}
