@@ -36,6 +36,7 @@ import {
   X,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { checkPremiumStatus, activatePremium as activatePremiumFn } from "@/lib/subscription"
 
 interface EventDashboardProps {
   event: Event
@@ -72,21 +73,15 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
 
     loadRSVPs()
 
-    const checkPremiumStatus = () => {
-      const premiumStatus = localStorage.getItem("user_premium") === "true"
+    const checkPremium = async () => {
+      const premiumStatus = await checkPremiumStatus()
       setHasSubscription(premiumStatus)
     }
 
-    checkPremiumStatus()
+    checkPremium()
 
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "user_premium") {
-        checkPremiumStatus()
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    return () => window.removeEventListener("storage", handleStorageChange)
+    const interval = setInterval(checkPremium, 5000)
+    return () => clearInterval(interval)
   }, [event.id])
 
   const attendingRSVPs = rsvps.filter((rsvp) => rsvp.attending)
@@ -254,23 +249,23 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
     }, 1000)
   }
 
-  const activatePremium = () => {
-    localStorage.setItem("user_premium", "true")
-    setHasSubscription(true)
+  const activatePremium = async () => {
+    const result = await activatePremiumFn()
 
-    window.dispatchEvent(
-      new StorageEvent("storage", {
-        key: "user_premium",
-        newValue: "true",
-      }),
-    )
-
-    toast({
-      title: "Premium Activated!",
-      description: "Payment successful! All premium features are now unlocked.",
-    })
-
-    console.log("[v0] Premium status automatically activated after payment detection")
+    if (result.success) {
+      setHasSubscription(true)
+      toast({
+        title: "Premium Activated!",
+        description: "Payment successful! All premium features are now unlocked.",
+      })
+      console.log("[v0] Premium status automatically activated after payment detection")
+    } else {
+      toast({
+        title: "Activation Failed",
+        description: result.error || "Failed to activate premium. Please contact support.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (

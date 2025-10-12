@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/use-auth"
 import type { Event } from "@/lib/types"
 import { Plus, Calendar, LogIn, LogOut, UserIcon, Crown, Settings, ChevronDown, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { checkPremiumStatus } from "@/lib/subscription"
 
 type View = "list" | "create" | "dashboard"
 
@@ -30,12 +31,14 @@ export default function HomePage() {
   useEffect(() => {
     setIsMounted(true)
 
-    const checkPremiumStatus = () => {
-      const premiumStatus = localStorage.getItem("user_premium") === "true"
-      setIsPremium(premiumStatus)
+    const checkPremium = async () => {
+      if (isAuthenticated && user) {
+        const premiumStatus = await checkPremiumStatus()
+        setIsPremium(premiumStatus)
+      }
     }
 
-    checkPremiumStatus()
+    checkPremium()
 
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.get("upgraded") === "true") {
@@ -45,7 +48,7 @@ export default function HomePage() {
       })
       window.history.replaceState({}, document.title, window.location.pathname)
     }
-  }, [toast])
+  }, [toast, isAuthenticated, user])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

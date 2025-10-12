@@ -10,6 +10,8 @@ import { useAuth } from "@/hooks/use-auth"
 import { ArrowLeft, UserIcon, Crown, CreditCard, AlertTriangle, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+import { checkPremiumStatus, activatePremium } from "@/lib/subscription"
+import { createBrowserClient } from "@/lib/supabase/client"
 
 export default function SettingsPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
@@ -32,8 +34,14 @@ export default function SettingsPage() {
       setEmail(user.email)
     }
 
-    const premiumStatus = localStorage.getItem("user_premium") === "true"
-    setIsPremium(premiumStatus)
+    const checkPremium = async () => {
+      if (user) {
+        const premiumStatus = await checkPremiumStatus()
+        setIsPremium(premiumStatus)
+      }
+    }
+
+    checkPremium()
   }, [user, isAuthenticated, isLoading, router])
 
   const handleUpdateAccount = async () => {
@@ -45,9 +53,20 @@ export default function SettingsPage() {
     })
   }
 
-  const handleCancelSubscription = () => {
-    localStorage.removeItem("user_premium")
-    localStorage.removeItem("payment_attempted")
+  const handleCancelSubscription = async () => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+
+    if (user) {
+      await supabase.from("user_profiles").upsert({
+        id: user.id,
+        is_premium: false,
+        subscription_status: "cancelled",
+      })
+    }
+
     setIsPremium(false)
     setShowCancelConfirm(false)
 
@@ -62,18 +81,20 @@ export default function SettingsPage() {
     window.open("https://square.link/u/wbf4KIie", "_blank")
   }
 
-  const handleUpgrade = () => {
+  const handleUpgrade = async () => {
     setShowPaymentModal(true)
 
-    setTimeout(() => {
+    setTimeout(async () => {
       if (showPaymentModal) {
-        localStorage.setItem("user_premium", "true")
-        setIsPremium(true)
-        setShowPaymentModal(false)
-        toast({
-          title: "Payment Successful!",
-          description: "Welcome to Premium! All features are now unlocked.",
-        })
+        const result = await activatePremium()
+        if (result.success) {
+          setIsPremium(true)
+          setShowPaymentModal(false)
+          toast({
+            title: "Payment Successful!",
+            description: "Welcome to Premium! All features are now unlocked.",
+          })
+        }
       }
     }, 30000)
   }
