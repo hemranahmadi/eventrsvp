@@ -526,10 +526,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded flex items-center justify-center z-10">
                 <div className="text-center">
                   <Crown className="h-6 w-6 text-amber-600 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700 mb-1">Premium Feature</p>
-                  <Button size="sm" onClick={handleUpgradeClick} className="bg-amber-600 hover:bg-amber-700">
-                    Upgrade for $0.15/month
-                  </Button>
+                  <p className="text-sm font-medium text-gray-700">Premium</p>
                 </div>
               </div>
             )}
@@ -560,10 +557,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded flex items-center justify-center z-10">
                 <div className="text-center">
                   <Crown className="h-6 w-6 text-amber-600 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700 mb-1">Premium Feature</p>
-                  <Button size="sm" onClick={handleUpgradeClick} className="bg-amber-600 hover:bg-amber-700">
-                    Upgrade for $0.15/month
-                  </Button>
+                  <p className="text-sm font-medium text-gray-700">Premium</p>
                 </div>
               </div>
             )}
@@ -615,10 +609,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded flex items-center justify-center z-10">
                 <div className="text-center">
                   <Crown className="h-6 w-6 text-amber-600 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700 mb-1">Premium Feature</p>
-                  <Button size="sm" onClick={handleUpgradeClick} className="bg-amber-600 hover:bg-amber-700">
-                    Upgrade for $0.15/month
-                  </Button>
+                  <p className="text-sm font-medium text-gray-700">Premium</p>
                 </div>
               </div>
             )}
