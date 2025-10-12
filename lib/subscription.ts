@@ -17,7 +17,7 @@ export async function checkPremiumStatus(): Promise<boolean> {
 
     const { data, error } = await supabase
       .from("user_profiles")
-      .select("is_premium, subscription_status")
+      .select("subscription_status")
       .eq("id", user.id)
       .single()
 
@@ -26,7 +26,7 @@ export async function checkPremiumStatus(): Promise<boolean> {
       return false
     }
 
-    return data?.is_premium === true
+    return data?.subscription_status === "active"
   } catch (error) {
     console.error("[v0] Error in checkPremiumStatus:", error)
     return false
