@@ -153,14 +153,30 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
   }
 
   const formatDeadline = (deadline: string) => {
-    // Handle both date-only strings (YYYY-MM-DD) and datetime strings (YYYY-MM-DDTHH:MM)
     const deadlineDate = new Date(deadline)
-    return deadlineDate.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+
+    // Check if the deadline includes a time component (has 'T' in the string)
+    const hasTime = deadline.includes("T")
+
+    if (hasTime) {
+      // Display both date and time
+      return deadlineDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    } else {
+      // Display only date
+      return deadlineDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    }
   }
 
   const handleEditEvent = async () => {

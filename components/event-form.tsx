@@ -30,8 +30,9 @@ export function EventForm({
     date: "",
     time: "",
     location: "",
-    guestLimit: "", // Added guest limit to form state
-    deadline: "", // Added deadline field to form state
+    guestLimit: "",
+    deadline: "",
+    deadlineTime: "", // Added deadline time field
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,6 +46,17 @@ export function EventForm({
     console.log("[v0] Event form data:", formData)
     console.log("[v0] Deadline value:", formData.deadline)
 
+    let deadlineValue = undefined
+    if (formData.deadline) {
+      if (formData.deadlineTime) {
+        // Combine date and time: "2025-10-17T17:00"
+        deadlineValue = `${formData.deadline}T${formData.deadlineTime}`
+      } else {
+        // If only date is provided, set time to end of day (23:59)
+        deadlineValue = `${formData.deadline}T23:59`
+      }
+    }
+
     const eventData = {
       title: formData.title,
       description: formData.description,
@@ -52,7 +64,7 @@ export function EventForm({
       time: formData.time,
       location: formData.location,
       guest_limit: formData.guestLimit ? Number.parseInt(formData.guestLimit) : undefined,
-      deadline: formData.deadline || undefined, // Changed from 'rsvp_deadline' to 'deadline'
+      deadline: deadlineValue,
       host_name: userName,
       host_email: userEmail,
     }
@@ -71,6 +83,7 @@ export function EventForm({
         location: "",
         guestLimit: "",
         deadline: "",
+        deadlineTime: "", // Reset deadline time
       })
     } else {
       alert("Failed to create event. Please try again.")
@@ -153,16 +166,30 @@ export function EventForm({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="deadline">RSVP Deadline (Optional)</Label>
-            <Input
-              id="deadline"
-              name="deadline"
-              type="date"
-              value={formData.deadline}
-              onChange={handleChange}
-              placeholder="Last date for RSVPs"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="deadline">RSVP Deadline Date (Optional)</Label>
+              <Input
+                id="deadline"
+                name="deadline"
+                type="date"
+                value={formData.deadline}
+                onChange={handleChange}
+                placeholder="Last date for RSVPs"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deadlineTime">RSVP Deadline Time (Optional)</Label>
+              <Input
+                id="deadlineTime"
+                name="deadlineTime"
+                type="time"
+                value={formData.deadlineTime}
+                onChange={handleChange}
+                placeholder="Time for deadline"
+                disabled={!formData.deadline}
+              />
+            </div>
           </div>
 
           <Button type="submit" className="w-full">

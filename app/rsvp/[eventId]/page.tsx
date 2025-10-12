@@ -116,12 +116,29 @@ export default function RSVPPage() {
 
   const formatDeadline = (deadline: string) => {
     const deadlineDate = new Date(deadline)
-    return deadlineDate.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+
+    // Check if the deadline includes a time component (has 'T' in the string)
+    const hasTime = deadline.includes("T")
+
+    if (hasTime) {
+      // Display both date and time
+      return deadlineDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    } else {
+      // Display only date
+      return deadlineDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    }
   }
 
   if (loading) {
