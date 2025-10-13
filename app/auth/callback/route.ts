@@ -39,25 +39,10 @@ export async function GET(request: NextRequest) {
       console.log("[v0] Code exchange successful, session user:", data.session.user.email)
       console.log("[v0] Type parameter:", type)
 
-      const redirectUrl = type === "recovery" ? "/auth/reset-password" : next
+      const redirectUrl = type === "recovery" ? `/auth/reset-password?session_verified=true` : next
       console.log("[v0] Redirecting to:", redirectUrl)
 
-      const response = NextResponse.redirect(new URL(redirectUrl, request.url))
-
-      // Ensure session cookies are set in the response
-      const sessionCookies = cookieStore.getAll()
-      sessionCookies.forEach((cookie) => {
-        if (cookie.name.includes("supabase") || cookie.name.includes("auth")) {
-          response.cookies.set(cookie.name, cookie.value, {
-            path: "/",
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-          })
-        }
-      })
-
-      return response
+      return NextResponse.redirect(new URL(redirectUrl, request.url))
     } else {
       console.error("[v0] Code exchange failed:", error)
       return NextResponse.redirect(
