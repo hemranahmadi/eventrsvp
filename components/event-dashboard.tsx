@@ -33,11 +33,9 @@ import {
   Edit,
   Trash2,
   Crown,
-  X,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { checkPremiumStatus } from "@/lib/subscription"
-import Checkout from "@/components/checkout"
 
 interface EventDashboardProps {
   event: Event
@@ -52,7 +50,6 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
   const [showQR, setShowQR] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [hasSubscription, setHasSubscription] = useState(false)
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [editForm, setEditForm] = useState({
     title: event.title,
     description: event.description || "",
@@ -63,6 +60,8 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
     deadline: event.deadline || "",
   })
   const { toast } = useToast()
+
+  const stripePaymentLink = "https://buy.stripe.com/test_5kQ3cw06X7Ne3TF15ffYY00"
 
   useEffect(() => {
     const loadRSVPs = async () => {
@@ -207,35 +206,15 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
   }
 
   const handleUpgradeClick = () => {
-    setShowPaymentModal(true)
+    window.open(stripePaymentLink, "_blank")
     toast({
-      title: "Opening Checkout",
+      title: "Opening Stripe Checkout",
       description: "Complete your payment to unlock premium features automatically.",
     })
   }
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Subscribe to Premium</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowPaymentModal(false)} className="h-8 w-8 p-0">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex-1 overflow-auto p-4">
-              <Checkout productId="premium-monthly" />
-            </div>
-            <div className="p-4 border-t bg-gray-50 text-center text-sm text-gray-600">
-              <p>Secure payment powered by Stripe</p>
-              <p className="mt-1">Premium features will unlock automatically after payment</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="flex items-center justify-between">
         <Button variant="outline" onClick={onBack}>
           ← Back to Events
