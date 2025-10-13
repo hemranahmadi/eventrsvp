@@ -28,8 +28,10 @@ export default function ForgotPasswordPage() {
 
     try {
       const redirectUrl = process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL
-        ? `${process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL}/auth/reset-password`
-        : `${window.location.origin}/auth/reset-password`
+        ? `${process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL}/auth/callback?type=recovery`
+        : `${window.location.origin}/auth/callback?type=recovery`
+
+      console.log("[v0] Sending password reset email with redirect:", redirectUrl)
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
@@ -37,8 +39,10 @@ export default function ForgotPasswordPage() {
 
       if (error) throw error
 
+      console.log("[v0] Password reset email sent successfully")
       setSuccess(true)
     } catch (err: any) {
+      console.error("[v0] Password reset error:", err)
       setError(err.message || "Failed to send reset email")
     } finally {
       setLoading(false)

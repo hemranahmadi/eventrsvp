@@ -28,8 +28,11 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     const handlePasswordReset = async () => {
       console.log("[v0] Reset password page loaded")
+      console.log("[v0] Full URL:", window.location.href)
+      console.log("[v0] Hash:", window.location.hash)
+      console.log("[v0] Search params:", window.location.search)
 
-      // Check if we have tokens in the URL hash
+      // Check if we have tokens in the URL hash (fallback for direct token links)
       const hashParams = new URLSearchParams(window.location.hash.substring(1))
       const accessToken = hashParams.get("access_token")
       const refreshToken = hashParams.get("refresh_token")
@@ -39,6 +42,7 @@ export default function ResetPasswordPage() {
         hasAccessToken: !!accessToken,
         hasRefreshToken: !!refreshToken,
         type,
+        fullHash: window.location.hash,
       })
 
       // If we have tokens in the hash, set the session
@@ -60,11 +64,16 @@ export default function ResetPasswordPage() {
           window.history.replaceState(null, "", window.location.pathname)
         }
       } else {
-        // No tokens in hash, check if we already have a session
+        // No tokens in hash, check if we already have a session (from callback route)
         console.log("[v0] No tokens in hash, checking existing session")
         const {
           data: { session },
         } = await supabase.auth.getSession()
+
+        console.log("[v0] Session check result:", {
+          hasSession: !!session,
+          userEmail: session?.user?.email,
+        })
 
         if (!session) {
           console.log("[v0] No valid session found")
