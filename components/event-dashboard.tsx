@@ -36,7 +36,8 @@ import {
   X,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { checkPremiumStatus, activatePremium as activatePremiumFn } from "@/lib/subscription"
+import { checkPremiumStatus } from "@/lib/subscription"
+import Checkout from "@/components/checkout"
 
 interface EventDashboardProps {
   event: Event
@@ -206,93 +207,29 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
   }
 
   const handleUpgradeClick = () => {
-    console.log("[v0] Opening embedded Square payment modal")
     setShowPaymentModal(true)
-
     toast({
-      title: "Payment Portal Opened",
+      title: "Opening Checkout",
       description: "Complete your payment to unlock premium features automatically.",
     })
-  }
-
-  const handleClosePaymentModal = () => {
-    console.log("[v0] Payment modal closed, checking for payment completion")
-    setShowPaymentModal(false)
-
-    setTimeout(() => {
-      const iframe = document.querySelector('iframe[title="Square Payment"]') as HTMLIFrameElement
-
-      if (iframe) {
-        try {
-          const checkPaymentStatus = () => {
-            console.log("[v0] Checking payment status...")
-
-            const modalOpenTime = Date.now() - (window as any).paymentModalOpenTime
-            if (modalOpenTime > 10000) {
-              console.log("[v0] Payment detected as successful, activating premium")
-              activatePremium()
-            } else {
-              console.log("[v0] Insufficient interaction time, payment likely not completed")
-              toast({
-                title: "Payment Not Detected",
-                description: "If you completed payment, please contact support for manual activation.",
-                variant: "destructive",
-              })
-            }
-          }
-
-          checkPaymentStatus()
-        } catch (error) {
-          console.log("[v0] Could not detect payment status:", error)
-        }
-      }
-    }, 1000)
-  }
-
-  const activatePremium = async () => {
-    const result = await activatePremiumFn()
-
-    if (result.success) {
-      setHasSubscription(true)
-      toast({
-        title: "Premium Activated!",
-        description: "Payment successful! All premium features are now unlocked.",
-      })
-      console.log("[v0] Premium status automatically activated after payment detection")
-    } else {
-      toast({
-        title: "Activation Failed",
-        description: result.error || "Failed to activate premium. Please contact support.",
-        variant: "destructive",
-      })
-    }
   }
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl h-[80vh] flex flex-col">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Complete Your Payment</h3>
-              <Button variant="ghost" size="sm" onClick={handleClosePaymentModal} className="h-8 w-8 p-0">
+              <h3 className="text-lg font-semibold">Subscribe to Premium</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowPaymentModal(false)} className="h-8 w-8 p-0">
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex-1 p-4">
-              <iframe
-                src="https://square.link/u/wbf4KIie"
-                className="w-full h-full border-0 rounded"
-                title="Square Payment"
-                allow="payment"
-                onLoad={() => {
-                  ;(window as any).paymentModalOpenTime = Date.now()
-                  console.log("[v0] Payment iframe loaded")
-                }}
-              />
+            <div className="flex-1 overflow-auto p-4">
+              <Checkout productId="premium-monthly" />
             </div>
             <div className="p-4 border-t bg-gray-50 text-center text-sm text-gray-600">
-              <p>Secure payment powered by Square</p>
+              <p>Secure payment powered by Stripe</p>
               <p className="mt-1">Premium features will unlock automatically after payment</p>
             </div>
           </div>

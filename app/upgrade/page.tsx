@@ -3,83 +3,23 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, Crown, ArrowLeft, ExternalLink } from "lucide-react"
+import { Check, Crown, ArrowLeft, X } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import Checkout from "@/components/checkout"
 
 export default function UpgradePage() {
-  const [isRedirecting, setIsRedirecting] = useState(false)
-  const [showActivation, setShowActivation] = useState(false)
-  const [isActivating, setIsActivating] = useState(false)
-  const [hasAttemptedPayment, setHasAttemptedPayment] = useState(false)
+  const [showCheckout, setShowCheckout] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    console.log("[v0] Checking URL parameters and payment attempts")
     const urlParams = new URLSearchParams(window.location.search)
-    const paymentCompleted = urlParams.get("payment") === "completed"
-    const attemptedPayment = localStorage.getItem("attempted_payment") === "true"
+    const paymentSuccess = urlParams.get("success") === "true"
 
-    console.log("[v0] Payment completed from URL:", paymentCompleted)
-    console.log("[v0] Attempted payment from storage:", attemptedPayment)
-
-    if (paymentCompleted || attemptedPayment) {
-      setShowActivation(true)
-      setHasAttemptedPayment(true)
+    if (paymentSuccess) {
+      router.push("/?upgraded=true")
     }
-  }, [])
-
-  const handleUpgrade = () => {
-    console.log("[v0] Starting upgrade process")
-    setIsRedirecting(true)
-
-    localStorage.setItem("attempted_payment", "true")
-    setHasAttemptedPayment(true)
-
-    window.open("https://square.link/u/wbf4KIie", "_blank")
-
-    setTimeout(() => {
-      console.log("[v0] Showing activation after timeout")
-      setIsRedirecting(false)
-      setShowActivation(true)
-    }, 3000)
-  }
-
-  const handleActivatePremium = () => {
-    console.log("[v0] Activating premium features")
-    setIsActivating(true)
-
-    // Get current user
-    const currentUser = localStorage.getItem("current_user")
-    console.log("[v0] Current user:", currentUser)
-
-    if (currentUser) {
-      const user = JSON.parse(currentUser)
-      console.log("[v0] Setting premium for user:", user.id)
-
-      // Set premium status
-      localStorage.setItem("premium_user", user.id)
-
-      localStorage.removeItem("attempted_payment")
-
-      setTimeout(() => {
-        console.log("[v0] Redirecting to dashboard")
-        setIsActivating(false)
-        // Redirect back to dashboard with success message
-        router.push("/?upgraded=true")
-      }, 1500)
-    } else {
-      console.log("[v0] No current user found")
-      setIsActivating(false)
-    }
-  }
-
-  const handleShowActivation = () => {
-    console.log("[v0] Manually showing activation")
-    setShowActivation(true)
-    setHasAttemptedPayment(true)
-    localStorage.setItem("attempted_payment", "true")
-  }
+  }, [router])
 
   const features = [
     "View detailed attendance analytics",
@@ -93,6 +33,22 @@ export default function UpgradePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      {showCheckout && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Complete Your Subscription</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowCheckout(false)} className="h-8 w-8 p-0">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto p-4">
+              <Checkout productId="premium-monthly" />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -113,54 +69,6 @@ export default function UpgradePage() {
             Unlock powerful analytics and guest management features to make your events even better
           </p>
         </div>
-
-        {!showActivation && (
-          <Card className="border-2 border-yellow-200 mb-8 bg-yellow-50">
-            <CardContent className="text-center py-6">
-              <p className="text-yellow-800 mb-4">
-                Already completed your payment? Click below to activate your premium features.
-              </p>
-              <Button
-                onClick={handleShowActivation}
-                variant="outline"
-                className="border-yellow-600 text-yellow-700 hover:bg-yellow-100 bg-transparent"
-              >
-                I've Completed Payment - Activate Now
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {showActivation && (
-          <Card className="border-2 border-green-200 mb-8 bg-green-50">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-center">Premium Features</CardTitle>
-              <CardDescription className="text-center">Everything you need to manage successful events</CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button
-                onClick={handleActivatePremium}
-                className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg"
-                disabled={isActivating}
-              >
-                {isActivating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Activating Premium...
-                  </>
-                ) : (
-                  <>
-                    <Crown className="h-5 w-5 mr-2" />
-                    Activate Premium Features
-                  </>
-                )}
-              </Button>
-              <p className="text-sm text-green-600 mt-3">
-                Only click this after you've successfully completed your payment on Square
-              </p>
-            </CardContent>
-          </Card>
-        )}
 
         <div className="grid md:grid-cols-2 gap-8">
           {/* Features Card */}
@@ -188,32 +96,21 @@ export default function UpgradePage() {
           <Card className="border-2 border-green-200">
             <CardHeader>
               <CardTitle className="text-2xl text-center">Secure Payment</CardTitle>
-              <CardDescription className="text-center">Powered by Square - Safe & Secure</CardDescription>
+              <CardDescription className="text-center">Powered by Stripe - Safe & Secure</CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-6">
               <div className="p-6 bg-green-50 rounded-lg">
                 <div className="text-lg font-semibold text-green-800 mb-2">Ready to upgrade?</div>
                 <p className="text-green-700 text-sm mb-4">
-                  Click below to securely pay with Square. After payment, return here to activate your premium features.
+                  Click below to securely subscribe with Stripe. Premium features activate automatically after payment.
                 </p>
 
                 <Button
-                  onClick={handleUpgrade}
+                  onClick={() => setShowCheckout(true)}
                   className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 text-lg"
-                  disabled={isRedirecting}
                 >
-                  {isRedirecting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Redirecting to Payment...
-                    </>
-                  ) : (
-                    <>
-                      <Crown className="h-5 w-5 mr-2" />
-                      Subscribe for $0.15/month
-                      <ExternalLink className="h-4 w-4 ml-2" />
-                    </>
-                  )}
+                  <Crown className="h-5 w-5 mr-2" />
+                  Subscribe for $0.15/month
                 </Button>
               </div>
 
@@ -222,40 +119,39 @@ export default function UpgradePage() {
                   <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
                     <Check className="h-3 w-3 text-blue-600" />
                   </div>
-                  <span>Secure Square payment processing</span>
+                  <span>Secure Stripe payment processing</span>
                 </div>
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
                     <Check className="h-3 w-3 text-blue-600" />
                   </div>
-                  <span>Return here after payment to activate</span>
+                  <span>Instant premium activation</span>
                 </div>
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
                     <Check className="h-3 w-3 text-blue-600" />
                   </div>
-                  <span>Cancel Anytime</span>
+                  <span>Cancel anytime</span>
                 </div>
               </div>
 
               <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                 <p className="text-xs text-gray-500">
-                  <strong>Important:</strong> After completing payment on Square, return to this page and click
-                  "Activate Premium Features" to unlock your premium analytics.
+                  <strong>Automatic Activation:</strong> Your premium features will be activated immediately after
+                  successful payment. No manual steps required!
                 </p>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Trust Indicators */}
         <div className="mt-12 text-center">
           <div className="flex items-center justify-center gap-8 text-gray-400">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
                 <div className="w-4 h-4 bg-green-500 rounded-full"></div>
               </div>
-              <span>Square Secured</span>
+              <span>Stripe Secured</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
