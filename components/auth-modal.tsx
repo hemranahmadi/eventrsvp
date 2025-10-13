@@ -91,42 +91,23 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       })
 
       if (signUpError) {
-        console.error("[v0] SignUp error details:", {
-          message: signUpError.message,
-          status: signUpError.status,
-          code: (signUpError as any).code,
-          details: (signUpError as any).details,
-          hint: (signUpError as any).hint,
-          fullError: signUpError,
-        })
+        console.error("[v0] SignUp error details:", signUpError)
         throw signUpError
       }
 
-      console.log("[v0] SignUp successful, user data:", {
-        userId: data.user?.id,
-        email: data.user?.email,
-        confirmed: data.user?.confirmed_at,
-      })
+      console.log("[v0] SignUp successful, user ID:", data.user?.id)
 
       if (data.user?.id) {
-        console.log("[v0] Creating user profile...")
+        console.log("[v0] Creating user profile via RPC...")
         try {
-          const { error: profileError } = await supabase.from("user_profiles").insert({
-            id: data.user.id,
-            subscription_status: "free",
-            is_premium: false,
+          const { data: profileData, error: profileError } = await supabase.rpc("create_user_profile", {
+            p_user_id: data.user.id,
           })
 
           if (profileError) {
-            console.error("[v0] Profile creation error details:", {
-              message: profileError.message,
-              code: profileError.code,
-              details: profileError.details,
-              hint: profileError.hint,
-              fullError: profileError,
-            })
+            console.error("[v0] Profile creation error:", profileError)
           } else {
-            console.log("[v0] User profile created successfully")
+            console.log("[v0] User profile created successfully:", profileData)
           }
         } catch (profileErr) {
           console.error("[v0] Profile creation exception:", profileErr)
@@ -149,12 +130,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       onClose()
       router.push(`/auth/verify?email=${encodeURIComponent(registerData.email)}`)
     } catch (err: any) {
-      console.error("[v0] Registration exception:", {
-        message: err?.message,
-        name: err?.name,
-        stack: err?.stack,
-        fullError: err,
-      })
+      console.error("[v0] Registration exception:", err)
 
       let errorMessage = "Registration failed"
 

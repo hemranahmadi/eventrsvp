@@ -52,21 +52,17 @@ export default function SignUpPage() {
 
       if (signUpData.user?.id) {
         try {
-          const { error: profileError } = await supabase.from("user_profiles").insert({
-            id: signUpData.user.id,
-            subscription_status: "free",
-            is_premium: false,
+          const { data: profileData, error: profileError } = await supabase.rpc("create_user_profile", {
+            p_user_id: signUpData.user.id,
           })
 
           if (profileError) {
             console.error("[v0] Profile creation error:", profileError)
-            // Don't throw - let user continue even if profile creation fails
           } else {
-            console.log("[v0] User profile created successfully")
+            console.log("[v0] User profile created successfully:", profileData)
           }
         } catch (profileErr) {
           console.error("[v0] Profile creation failed:", profileErr)
-          // Don't throw - let user continue
         }
       }
 
