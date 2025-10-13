@@ -27,23 +27,18 @@ export async function createEvent(eventData: {
       throw new Error("User not authenticated")
     }
 
-    // Insert the event using server-side client
-    const { data, error } = await supabase
-      .from("events")
-      .insert({
-        title: eventData.title,
-        description: eventData.description,
-        date: eventData.date,
-        time: eventData.time,
-        location: eventData.location,
-        guest_limit: eventData.guest_limit,
-        deadline: eventData.deadline,
-        host_name: eventData.host_name,
-        host_email: eventData.host_email,
-        host_user_id: user.id,
-      })
-      .select()
-      .single()
+    const { data, error } = await supabase.rpc("insert_event_dynamic", {
+      p_title: eventData.title,
+      p_description: eventData.description,
+      p_date: eventData.date,
+      p_time: eventData.time,
+      p_location: eventData.location,
+      p_guest_limit: eventData.guest_limit,
+      p_deadline: eventData.deadline,
+      p_host_name: eventData.host_name,
+      p_host_email: eventData.host_email,
+      p_host_user_id: user.id,
+    })
 
     if (error) {
       console.error("[v0] Server action error:", error)
