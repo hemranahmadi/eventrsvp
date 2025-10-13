@@ -13,7 +13,6 @@ export async function saveEvent(event: Omit<Event, "id" | "created_at">, userId:
     .insert({
       ...event,
       host_user_id: userId,
-      active: true,
     })
     .select()
     .single()
