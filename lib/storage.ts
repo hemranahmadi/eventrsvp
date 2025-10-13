@@ -22,12 +22,12 @@ export async function saveEvent(event: Omit<Event, "id" | "created_at">, userId:
   })
 
   if (error) {
-    console.error("Error saving event:", error)
-    return null
+    console.error("[v0] Error saving event:", error)
+    throw new Error(`Error saving event: ${error.message}`)
   }
 
-  // RPC returns an array, get the first item
-  const savedEvent = Array.isArray(data) ? data[0] : data
+  // The function now returns a JSON object directly
+  const savedEvent = data as Event
 
   console.log("[v0] Event saved successfully:", savedEvent)
   console.log("[v0] Saved event deadline:", savedEvent?.deadline)

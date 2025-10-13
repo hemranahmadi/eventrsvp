@@ -1,5 +1,10 @@
 -- Create a PostgreSQL function to insert events
 -- This bypasses PostgREST's schema cache by using direct SQL
+
+-- Drop the function if it exists
+DROP FUNCTION IF EXISTS insert_event;
+
+-- Create the function with simpler return type
 CREATE OR REPLACE FUNCTION insert_event(
   p_title TEXT,
   p_description TEXT,
@@ -12,23 +17,10 @@ CREATE OR REPLACE FUNCTION insert_event(
   p_host_email TEXT,
   p_host_user_id UUID
 )
-RETURNS TABLE (
-  id UUID,
-  title TEXT,
-  description TEXT,
-  date TEXT,
-  time TEXT,
-  location TEXT,
-  guest_limit INTEGER,
-  deadline TEXT,
-  host_name TEXT,
-  host_email TEXT,
-  host_user_id UUID,
-  active BOOLEAN,
-  created_at TIMESTAMPTZ
-) AS $$
+RETURNS JSON AS $$
+DECLARE
+  new_event JSON;
 BEGIN
-  RETURN QUERY
   INSERT INTO events (
     title,
     description,
@@ -54,22 +46,28 @@ BEGIN
     p_host_user_id,
     true
   )
-  RETURNING 
-    events.id,
-    events.title,
-    events.description,
-    events.date,
-    events.time,
-    events.location,
-    events.guest_limit,
-    events.deadline,
-    events.host_name,
-    events.host_email,
-    events.host_user_id,
-    events.active,
-    events.created_at;
+  RETURNING json_build_object(
+    'id', id,
+    'title', title,
+    'description', description,
+    'date', date,
+    'time', time,
+    'location', location,
+    'guest_limit', guest_limit,
+    'deadline', deadline,
+    'host_name', host_name,
+    'host_email', host_email,
+    'host_user_id', host_user_id,
+    'active', active,
+    'created_at', created_at
+  ) INTO new_event;
+  
+  RETURN new_event;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Grant execute permission to authenticated users
-GRANT EXECUTE ON FUNCTION insert_event TO authenticated;
+GRANT EXECUTE ON FUNCTION insert_event(TEXT, TEXT, TEXT, TEXT, TEXT, INTEGER, TEXT, TEXT, TEXT, UUID) TO authenticated;
+
+-- Notify PostgREST to reload schema
+NOTIFY pgrst, 'reload schema';
