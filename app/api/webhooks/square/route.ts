@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
         const { error: updateError } = await supabase.from("user_profiles").upsert(
           {
             id: user.id,
+            is_premium: true,
             subscription_status: "active",
             subscription_started_at: new Date().toISOString(),
             square_customer_id: payment.customer_id || null,
