@@ -30,6 +30,8 @@ export default function SignUpPage() {
     setLoading(true)
 
     try {
+      console.log("[v0] Starting sign up process for:", email)
+
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -37,29 +39,46 @@ export default function SignUpPage() {
           data: {
             name,
           },
-          emailRedirectTo: undefined,
+          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || window.location.origin,
         },
       })
 
-      if (signUpError) throw signUpError
+      if (signUpError) {
+        console.error("[v0] Sign up error:", signUpError)
+        throw signUpError
+      }
+
+      console.log("[v0] Sign up successful, user ID:", signUpData.user?.id)
 
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          shouldCreateUser: false, // Don't create user, just send OTP
+          shouldCreateUser: false,
         },
       })
 
       if (otpError) {
         console.log("[v0] OTP send error:", otpError)
-        // If OTP fails, still redirect to verify page
-        // User can use resend button
       }
 
+      console.log("[v0] Redirecting to verification page")
       router.push(`/auth/verify?email=${encodeURIComponent(email)}`)
     } catch (err: any) {
       console.error("[v0] Sign up error:", err)
-      setError(err.message || "Failed to sign up")
+
+      let errorMessage = "Failed to sign up"
+
+      if (err.message?.includes("already registered")) {
+        errorMessage = "An account with this email already exists"
+      } else if (err.message?.includes("invalid email")) {
+        errorMessage = "Please enter a valid email address"
+      } else if (err.message?.includes("password")) {
+        errorMessage = "Password must be at least 6 characters"
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+
+      setError(errorMessage)
       setLoading(false)
     }
   }

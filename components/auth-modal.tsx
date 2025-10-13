@@ -74,25 +74,55 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setLoading(true)
 
     try {
+      console.log("[v0] Starting registration for:", registerData.email)
+
       const supabase = createClient()
 
-      const { error } = await supabase.auth.signInWithOtp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: registerData.email,
+        password: registerData.password,
         options: {
-          shouldCreateUser: true,
           data: {
             name: registerData.name,
-            password: registerData.password,
           },
+          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || window.location.origin,
         },
       })
 
-      if (error) throw error
+      if (signUpError) {
+        console.error("[v0] Registration error:", signUpError)
+        throw signUpError
+      }
+
+      console.log("[v0] Registration successful, user ID:", data.user?.id)
+
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: registerData.email,
+        options: {
+          shouldCreateUser: false,
+        },
+      })
+
+      if (otpError) {
+        console.log("[v0] OTP send error:", otpError)
+      }
 
       onClose()
       router.push(`/auth/verify?email=${encodeURIComponent(registerData.email)}`)
     } catch (err: any) {
-      setError(err.message || "Registration failed")
+      console.error("[v0] Registration error:", err)
+
+      let errorMessage = "Registration failed"
+
+      if (err.message?.includes("already registered")) {
+        errorMessage = "An account with this email already exists"
+      } else if (err.message?.includes("invalid email")) {
+        errorMessage = "Please enter a valid email address"
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

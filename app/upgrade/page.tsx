@@ -1,15 +1,16 @@
 "use client"
 
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, Crown, ArrowLeft } from "lucide-react"
+import { Check, Crown, ArrowLeft, X } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import Checkout from "@/components/checkout"
 
 export default function UpgradePage() {
+  const [showCheckout, setShowCheckout] = useState(false)
   const router = useRouter()
-  const stripePaymentLink = "https://buy.stripe.com/test_5kQ3cw06X7Ne3TF15ffYY00"
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -30,12 +31,24 @@ export default function UpgradePage() {
     "Priority customer support",
   ]
 
-  const handleUpgradeClick = () => {
-    window.open(stripePaymentLink, "_blank")
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      {showCheckout && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Complete Your Subscription</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowCheckout(false)} className="h-8 w-8 p-0">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto p-4">
+              <Checkout productId="premium-monthly" />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -93,7 +106,7 @@ export default function UpgradePage() {
                 </p>
 
                 <Button
-                  onClick={handleUpgradeClick}
+                  onClick={() => setShowCheckout(true)}
                   className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 text-lg"
                 >
                   <Crown className="h-5 w-5 mr-2" />
