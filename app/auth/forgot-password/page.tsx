@@ -28,8 +28,8 @@ export default function ForgotPasswordPage() {
 
     try {
       const redirectUrl = process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL
-        ? `${process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL}/auth/callback?type=recovery`
-        : `${window.location.origin}/auth/callback?type=recovery`
+        ? `${process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL}/auth/reset-password`
+        : `${window.location.origin}/auth/reset-password`
 
       console.log("[v0] Sending password reset email with redirect:", redirectUrl)
 

@@ -16,8 +16,8 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [checkingSession, setCheckingSession] = useState(true)
-  const [hasValidSession, setHasValidSession] = useState(false)
+  const [verifying, setVerifying] = useState(true)
+  const [isValidLink, setIsValidLink] = useState(false)
   const router = useRouter()
 
   const supabase = createBrowserClient(
@@ -26,34 +26,54 @@ export default function ResetPasswordPage() {
   )
 
   useEffect(() => {
-    const handlePasswordReset = async () => {
-      console.log("[v0] Reset password page loaded")
+    const verifyResetLink = async () => {
+      console.log("[v0] Verifying password reset link")
+      console.log("[v0] Current URL:", window.location.href)
+      console.log("[v0] Hash:", window.location.hash)
 
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken = hashParams.get("access_token")
+      const refreshToken = hashParams.get("refresh_token")
+      const type = hashParams.get("type")
 
-      // Check for existing session (should be set by callback route)
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      console.log("[v0] Session check result:", {
-        hasSession: !!session,
-        userEmail: session?.user?.email,
+      console.log("[v0] Extracted from hash:", {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        type,
       })
 
-      if (!session) {
-        console.log("[v0] No valid session found")
-        setError("Invalid or expired reset link. Please request a new one.")
-        setHasValidSession(false)
+      if (accessToken && refreshToken && type === "recovery") {
+        try {
+          console.log("[v0] Setting session with recovery tokens")
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+
+          if (error) {
+            console.error("[v0] Error setting session:", error)
+            throw error
+          }
+
+          console.log("[v0] Session set successfully:", data.user?.email)
+          setIsValidLink(true)
+
+          window.history.replaceState(null, "", window.location.pathname)
+        } catch (err: any) {
+          console.error("[v0] Failed to verify reset link:", err)
+          setError("Invalid or expired reset link. Please request a new one.")
+          setIsValidLink(false)
+        }
       } else {
-        console.log("[v0] Valid session found:", session.user?.email)
-        setHasValidSession(true)
+        console.log("[v0] No valid recovery tokens found in URL")
+        setError("Invalid or expired reset link. Please request a new one.")
+        setIsValidLink(false)
       }
 
-      setCheckingSession(false)
+      setVerifying(false)
     }
 
-    handlePasswordReset()
+    verifyResetLink()
   }, [supabase.auth])
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -82,9 +102,10 @@ export default function ResetPasswordPage() {
 
       console.log("[v0] Password updated successfully")
       setSuccess(true)
+
       await supabase.auth.signOut()
       setTimeout(() => {
-        router.push("/auth/login?message=password_reset_success")
+        router.push("/auth/login?message=Password reset successful! Please log in with your new password.")
       }, 2000)
     } catch (err: any) {
       console.error("[v0] Error updating password:", err)
@@ -94,7 +115,7 @@ export default function ResetPasswordPage() {
     }
   }
 
-  if (checkingSession) {
+  if (verifying) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <Card className="w-full max-w-md">
@@ -124,6 +145,30 @@ export default function ResetPasswordPage() {
     )
   }
 
+  if (!isValidLink) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Invalid Reset Link</CardTitle>
+            <CardDescription>This password reset link is invalid or has expired</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>
+            <Link href="/auth/forgot-password">
+              <Button className="w-full">Request New Reset Link</Button>
+            </Link>
+            <div className="text-center text-sm">
+              <Link href="/auth/login" className="text-blue-600 hover:underline">
+                Back to Login
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md">
@@ -132,45 +177,36 @@ export default function ResetPasswordPage() {
           <CardDescription>Enter your new password below</CardDescription>
         </CardHeader>
         <CardContent>
-          {!hasValidSession && error ? (
-            <div className="space-y-4">
-              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>
-              <Link href="/auth/forgot-password">
-                <Button className="w-full">Request New Reset Link</Button>
-              </Link>
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">New Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter new password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
             </div>
-          ) : (
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter new password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Confirm new password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
-              {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Resetting..." : "Reset Password"}
-              </Button>
-            </form>
-          )}
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+            </div>
+            {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Resetting..." : "Reset Password"}
+            </Button>
+          </form>
           <div className="mt-4 text-center text-sm">
             <Link href="/auth/login" className="text-blue-600 hover:underline">
               Back to Login
