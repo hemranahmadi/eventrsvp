@@ -10,8 +10,9 @@ import { useAuth } from "@/hooks/use-auth"
 import { ArrowLeft, UserIcon, Crown, CreditCard, AlertTriangle, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { checkPremiumStatus, activatePremium } from "@/lib/subscription"
+import { checkPremiumStatus } from "@/lib/subscription"
 import { createBrowserClient } from "@/lib/supabase/client"
+import Checkout from "@/components/checkout"
 
 export default function SettingsPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
@@ -20,7 +21,6 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("")
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [isActivating, setIsActivating] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -79,17 +79,24 @@ export default function SettingsPage() {
     })
   }
 
-  const handleManageSubscription = () => {
-    window.open("https://square.link/u/wbf4KIie", "_blank")
+  const handleManageSubscription = async () => {
+    // In production, you would create a Stripe billing portal session
+    // For now, we'll show a message
+    toast({
+      title: "Manage Subscription",
+      description: "Redirecting to billing portal...",
+    })
   }
 
   const handleUpgrade = async () => {
     setShowPaymentModal(true)
 
+    // Clear any existing polling interval
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current)
     }
 
+    // Start polling for premium status every 3 seconds
     pollIntervalRef.current = setInterval(async () => {
       try {
         const premiumStatus = await checkPremiumStatus()
@@ -110,6 +117,7 @@ export default function SettingsPage() {
       }
     }, 3000)
 
+    // Stop polling after 5 minutes
     setTimeout(() => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current)
@@ -124,29 +132,6 @@ export default function SettingsPage() {
       pollIntervalRef.current = null
     }
     setShowPaymentModal(false)
-  }
-
-  const handleManualActivation = async () => {
-    setIsActivating(true)
-
-    const result = await activatePremium()
-
-    if (result.success) {
-      setIsPremium(true)
-      setShowPaymentModal(false)
-      toast({
-        title: "Premium Activated!",
-        description: "Welcome to Premium! All features are now unlocked.",
-      })
-    } else {
-      toast({
-        title: "Activation Failed",
-        description: result.error || "Failed to activate premium. Please try again.",
-        variant: "destructive",
-      })
-    }
-
-    setIsActivating(false)
   }
 
   useEffect(() => {
@@ -335,42 +320,17 @@ export default function SettingsPage() {
         </div>
       </main>
 
-      {/* Embedded Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl h-[600px] relative flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] relative flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="text-lg font-semibold">Upgrade to Premium</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClosePaymentModal}
-                disabled={isActivating}
-                className="h-8 w-8 p-0"
-              >
-                {isActivating ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+              <Button variant="ghost" size="sm" onClick={handleClosePaymentModal} className="h-8 w-8 p-0">
+                <X className="h-4 w-4" />
               </Button>
             </div>
-            <iframe
-              src="https://square.link/u/wbf4KIie"
-              className="w-full flex-1 border-0 min-h-[500px]"
-              title="Square Payment"
-            />
-            <div className="p-4 border-t bg-muted/50">
-              <p className="text-sm text-muted-foreground mb-3">
-                After completing your payment on Square, close this window or click the button below to activate your
-                premium features.
-              </p>
-              <Button onClick={handleManualActivation} disabled={isActivating} className="w-full">
-                {isActivating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Activating Premium...
-                  </>
-                ) : (
-                  "I've Completed Payment - Activate Premium"
-                )}
-              </Button>
+            <div className="flex-1 overflow-auto p-4">
+              <Checkout productId="premium-monthly" />
             </div>
           </div>
         </div>
