@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { saveEvent } from "@/lib/storage"
+import { createEvent } from "@/app/actions/events"
 import type { Event } from "@/lib/types"
 
 interface EventFormProps {
@@ -32,7 +32,7 @@ export function EventForm({
     location: "",
     guestLimit: "",
     deadline: "",
-    deadlineTime: "", // Added deadline time field
+    deadlineTime: "",
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,16 +43,11 @@ export function EventForm({
       return
     }
 
-    console.log("[v0] Event form data:", formData)
-    console.log("[v0] Deadline value:", formData.deadline)
-
     let deadlineValue = undefined
     if (formData.deadline) {
       if (formData.deadlineTime) {
-        // Combine date and time: "2025-10-17T17:00"
         deadlineValue = `${formData.deadline}T${formData.deadlineTime}`
       } else {
-        // If only date is provided, set time to end of day (23:59)
         deadlineValue = `${formData.deadline}T23:59`
       }
     }
@@ -63,18 +58,16 @@ export function EventForm({
       date: formData.date,
       time: formData.time,
       location: formData.location,
-      guest_limit: formData.guestLimit ? Number.parseInt(formData.guestLimit) : undefined,
-      deadline: deadlineValue,
+      guest_limit: formData.guestLimit ? Number.parseInt(formData.guestLimit) : 0,
+      deadline: deadlineValue || "",
       host_name: userName,
       host_email: userEmail,
     }
 
-    console.log("[v0] Event data being saved:", eventData)
+    const result = await createEvent(eventData)
 
-    const event = await saveEvent(eventData, userId)
-
-    if (event) {
-      onEventCreated(event)
+    if (result.success && result.data) {
+      onEventCreated(result.data)
       setFormData({
         title: "",
         description: "",
@@ -83,10 +76,10 @@ export function EventForm({
         location: "",
         guestLimit: "",
         deadline: "",
-        deadlineTime: "", // Reset deadline time
+        deadlineTime: "",
       })
     } else {
-      alert("Failed to create event. Please try again.")
+      alert(`Failed to create event: ${result.error || "Unknown error"}`)
     }
   }
 
