@@ -1,47 +1,53 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { authStorage, type User } from "@/lib/auth"
-import { ArrowLeft, UserIcon, Crown, CreditCard, AlertTriangle, X } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
+import { ArrowLeft, UserIcon, Crown, CreditCard, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+import { checkPremiumStatus } from "@/lib/subscription"
+import Checkout from "@/components/checkout"
+import { createCustomerPortalSession } from "@/app/actions/stripe"
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<User | null>(null)
+  const { user, isAuthenticated, isLoading } = useAuth()
   const [isPremium, setIsPremium] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [isManagingBilling, setIsManagingBilling] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    const existingUser = authStorage.getUser()
-    if (!existingUser) {
+    if (!isLoading && !isAuthenticated) {
       router.push("/")
       return
     }
 
-    setUser(existingUser)
-    setName(existingUser.name)
-    setEmail(existingUser.email)
+    if (user) {
+      setName(user.name)
+      setEmail(user.email)
+    }
 
-    const premiumStatus = localStorage.getItem("user_premium") === "true"
-    setIsPremium(premiumStatus)
-  }, [router])
+    const checkPremium = async () => {
+      if (user) {
+        const premiumStatus = await checkPremiumStatus()
+        setIsPremium(premiumStatus)
+      }
+    }
 
-  const handleUpdateAccount = () => {
+    checkPremium()
+  }, [user, isAuthenticated, isLoading, router])
+
+  const handleUpdateAccount = async () => {
     if (!user) return
-
-    const updatedUser = { ...user, name, email }
-    authStorage.setUser(updatedUser)
-    setUser(updatedUser)
 
     toast({
       title: "Account Updated",
@@ -49,40 +55,85 @@ export default function SettingsPage() {
     })
   }
 
-  const handleCancelSubscription = () => {
-    localStorage.removeItem("user_premium")
-    localStorage.removeItem("payment_attempted")
-    setIsPremium(false)
-    setShowCancelConfirm(false)
-
-    toast({
-      title: "Subscription Cancelled",
-      description:
-        "Your premium subscription has been cancelled. You'll retain access until the end of your billing period.",
-    })
+  const handleManageSubscription = async () => {
+    setIsManagingBilling(true)
+    try {
+      const portalUrl = await createCustomerPortalSession()
+      window.location.href = portalUrl
+    } catch (error) {
+      console.error("[v0] Error creating portal session:", error)
+      toast({
+        title: "Error",
+        description: "Failed to open billing portal. Please try again.",
+        variant: "destructive",
+      })
+      setIsManagingBilling(false)
+    }
   }
 
-  const handleManageSubscription = () => {
-    window.open("https://square.link/u/khqXjy2h", "_blank")
-  }
-
-  const handleUpgrade = () => {
+  const handleUpgrade = async () => {
     setShowPaymentModal(true)
 
-    setTimeout(() => {
-      if (showPaymentModal) {
-        localStorage.setItem("user_premium", "true")
-        setIsPremium(true)
-        setShowPaymentModal(false)
-        toast({
-          title: "Payment Successful!",
-          description: "Welcome to Premium! All features are now unlocked.",
-        })
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+    }
+
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const premiumStatus = await checkPremiumStatus()
+        if (premiumStatus) {
+          setIsPremium(true)
+          setShowPaymentModal(false)
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
+          toast({
+            title: "Premium Activated!",
+            description: "Your payment was successful. All premium features are now unlocked.",
+          })
+        }
+      } catch (error) {
+        console.error("[v0] Error polling premium status:", error)
       }
-    }, 30000)
+    }, 3000)
+
+    setTimeout(() => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+        pollIntervalRef.current = null
+      }
+    }, 300000)
   }
 
-  if (!user) {
+  const handleClosePaymentModal = async () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+      pollIntervalRef.current = null
+    }
+    setShowPaymentModal(false)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+      }
+    }
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated || !user) {
     return null
   }
 
@@ -173,14 +224,16 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex gap-2">
                   {isPremium ? (
-                    <>
-                      <Button variant="outline" onClick={handleManageSubscription}>
-                        Manage Billing
-                      </Button>
-                      <Button variant="destructive" onClick={() => setShowCancelConfirm(true)}>
-                        Cancel
-                      </Button>
-                    </>
+                    <Button variant="outline" onClick={handleManageSubscription} disabled={isManagingBilling}>
+                      {isManagingBilling ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Opening...
+                        </>
+                      ) : (
+                        "Manage Subscription"
+                      )}
+                    </Button>
                   ) : (
                     <Button onClick={handleUpgrade}>Upgrade to Premium</Button>
                   )}
@@ -208,62 +261,31 @@ export default function SettingsPage() {
                       Export guest lists
                     </li>
                   </ul>
+                  <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                    <p>
+                      Click <strong>Manage Subscription</strong> to update your payment method, view invoices, or cancel
+                      your subscription.
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
-
-          {/* Cancel Subscription Confirmation */}
-          {showCancelConfirm && (
-            <Card className="border-destructive">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-destructive">
-                  <AlertTriangle className="h-5 w-5" />
-                  Cancel Subscription
-                </CardTitle>
-                <CardDescription>Are you sure you want to cancel your premium subscription?</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-destructive/10 rounded-lg">
-                  <p className="text-sm">
-                    <strong>What happens when you cancel:</strong>
-                  </p>
-                  <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                    <li>• You'll lose access to premium analytics</li>
-                    <li>• Advanced guest management will be disabled</li>
-                    <li>• You can resubscribe anytime</li>
-                    <li>• Your event data will be preserved</li>
-                  </ul>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="destructive" onClick={handleCancelSubscription} className="flex-1">
-                    Yes, Cancel Subscription
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowCancelConfirm(false)} className="flex-1">
-                    Keep Subscription
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </main>
 
-      {/* Embedded Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl h-[600px] relative">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] relative flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="text-lg font-semibold">Upgrade to Premium</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowPaymentModal(false)} className="h-8 w-8 p-0">
+              <Button variant="ghost" size="sm" onClick={handleClosePaymentModal} className="h-8 w-8 p-0">
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <iframe
-              src="https://square.link/u/khqXjy2h"
-              className="w-full h-[calc(100%-60px)] border-0"
-              title="Square Payment"
-            />
+            <div className="flex-1 overflow-auto p-4">
+              <Checkout productId="premium-monthly" />
+            </div>
           </div>
         </div>
       )}

@@ -8,57 +8,79 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { saveEvent } from "@/lib/storage"
-import { authStorage } from "@/lib/auth"
+import { createEvent } from "@/app/actions/events"
 import type { Event } from "@/lib/types"
 
 interface EventFormProps {
   onEventCreated: (event: Event) => void
+  userId: string
+  userName?: string
+  userEmail?: string
 }
 
-export function EventForm({ onEventCreated }: EventFormProps) {
+export function EventForm({
+  onEventCreated,
+  userId,
+  userName = "Event Host",
+  userEmail = "host@example.com",
+}: EventFormProps) {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     date: "",
     time: "",
     location: "",
-    guestLimit: "", // Added guest limit to form state
-    deadline: "", // Added deadline field to form state
+    guestLimit: "",
+    deadline: "",
+    deadlineTime: "",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const currentUser = authStorage.getUser()
-    if (!currentUser) {
+    if (!userId) {
       alert("Please sign in to create events")
       return
     }
 
-    const event: Event = {
-      id: crypto.randomUUID(),
-      ...formData,
-      guestLimit: formData.guestLimit ? Number.parseInt(formData.guestLimit) : undefined,
-      deadline: formData.deadline || undefined, // Added deadline to event object
-      hostName: currentUser.name,
-      hostEmail: currentUser.email,
-      createdAt: new Date().toISOString(),
-      active: true,
+    let deadlineValue = undefined
+    if (formData.deadline) {
+      if (formData.deadlineTime) {
+        deadlineValue = `${formData.deadline}T${formData.deadlineTime}`
+      } else {
+        deadlineValue = `${formData.deadline}T23:59`
+      }
     }
 
-    saveEvent(event, currentUser.id)
-    onEventCreated(event)
+    const eventData = {
+      title: formData.title,
+      description: formData.description,
+      date: formData.date,
+      time: formData.time,
+      location: formData.location,
+      guest_limit: formData.guestLimit ? Number.parseInt(formData.guestLimit) : 0,
+      deadline: deadlineValue || "",
+      host_name: userName,
+      host_email: userEmail,
+    }
 
-    setFormData({
-      title: "",
-      description: "",
-      date: "",
-      time: "",
-      location: "",
-      guestLimit: "", // Reset guest limit field
-      deadline: "", // Reset deadline field
-    })
+    const result = await createEvent(eventData)
+
+    if (result.success && result.data) {
+      onEventCreated(result.data)
+      setFormData({
+        title: "",
+        description: "",
+        date: "",
+        time: "",
+        location: "",
+        guestLimit: "",
+        deadline: "",
+        deadlineTime: "",
+      })
+    } else {
+      alert(`Failed to create event: ${result.error || "Unknown error"}`)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -137,16 +159,30 @@ export function EventForm({ onEventCreated }: EventFormProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="deadline">RSVP Deadline (Optional)</Label>
-            <Input
-              id="deadline"
-              name="deadline"
-              type="date"
-              value={formData.deadline}
-              onChange={handleChange}
-              placeholder="Last date for RSVPs"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="deadline">RSVP Deadline Date (Optional)</Label>
+              <Input
+                id="deadline"
+                name="deadline"
+                type="date"
+                value={formData.deadline}
+                onChange={handleChange}
+                placeholder="Last date for RSVPs"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deadlineTime">RSVP Deadline Time (Optional)</Label>
+              <Input
+                id="deadlineTime"
+                name="deadlineTime"
+                type="time"
+                value={formData.deadlineTime}
+                onChange={handleChange}
+                placeholder="Time for deadline"
+                disabled={!formData.deadline}
+              />
+            </div>
           </div>
 
           <Button type="submit" className="w-full">

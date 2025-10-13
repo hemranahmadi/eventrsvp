@@ -3,10 +3,9 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { getUserEvents, updateEventStatus, deleteEvent } from "@/lib/storage"
+import { getUserEvents, deleteEvent } from "@/lib/storage"
 import type { Event } from "@/lib/types"
-import { Calendar, MapPin, Power, PowerOff, Trash2 } from "lucide-react"
+import { Calendar, MapPin, Trash2 } from "lucide-react"
 
 interface EventListProps {
   onSelectEvent: (event: Event) => void
@@ -15,27 +14,23 @@ interface EventListProps {
 
 export function EventList({ onSelectEvent, userId }: EventListProps) {
   const [events, setEvents] = useState<Event[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const loadEvents = () => {
-    console.log("[v0] Fetching events for user:", userId)
-    const userEvents = getUserEvents(userId)
-    console.log("[v0] Found events:", userEvents)
+  const loadEvents = async () => {
+    setLoading(true)
+    const userEvents = await getUserEvents(userId)
     setEvents(userEvents)
+    setLoading(false)
   }
 
   useEffect(() => {
     loadEvents()
   }, [userId])
 
-  const handleToggleStatus = (eventId: string, currentStatus: boolean) => {
-    updateEventStatus(eventId, userId, !currentStatus)
-    loadEvents() // Refresh the list
-  }
-
-  const handleDeleteEvent = (eventId: string) => {
+  const handleDeleteEvent = async (eventId: string) => {
     if (confirm("Are you sure you want to delete this event? This will also delete all RSVPs.")) {
-      deleteEvent(eventId, userId)
-      loadEvents() // Refresh the list
+      await deleteEvent(eventId, userId)
+      loadEvents()
     }
   }
 
@@ -49,6 +44,17 @@ export function EventList({ onSelectEvent, userId }: EventListProps) {
       hour: "numeric",
       minute: "2-digit",
     })
+  }
+
+  if (loading) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+          <p className="text-muted-foreground">Loading your events...</p>
+        </CardContent>
+      </Card>
+    )
   }
 
   if (events.length === 0) {
@@ -73,11 +79,10 @@ export function EventList({ onSelectEvent, userId }: EventListProps) {
           <Card key={event.id} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <div className="flex items-start justify-between">
-                <div>
+                <div className="flex-1">
                   <CardTitle className="text-xl">{event.title}</CardTitle>
                   <CardDescription className="mt-2">{event.description}</CardDescription>
                 </div>
-                <Badge variant={event.active ? "default" : "secondary"}>{event.active ? "Active" : "Inactive"}</Badge>
               </div>
             </CardHeader>
             <CardContent>
@@ -94,34 +99,15 @@ export function EventList({ onSelectEvent, userId }: EventListProps) {
                   <Button onClick={() => onSelectEvent(event)} className="w-full">
                     View Dashboard
                   </Button>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleStatus(event.id, event.active)}
-                      className="flex-1"
-                    >
-                      {event.active ? (
-                        <>
-                          <PowerOff className="h-4 w-4 mr-2" />
-                          Deactivate
-                        </>
-                      ) : (
-                        <>
-                          <Power className="h-4 w-4 mr-2" />
-                          Activate
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteEvent(event.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteEvent(event.id)}
+                    className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Event
+                  </Button>
                 </div>
               </div>
             </CardContent>

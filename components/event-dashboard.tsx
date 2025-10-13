@@ -36,6 +36,8 @@ import {
   X,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { checkPremiumStatus } from "@/lib/subscription"
+import Checkout from "@/components/checkout"
 
 interface EventDashboardProps {
   event: Event
@@ -46,6 +48,7 @@ interface EventDashboardProps {
 
 export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventDashboardProps) {
   const [rsvps, setRSVPs] = useState<RSVP[]>([])
+  const [loading, setLoading] = useState(true)
   const [showQR, setShowQR] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [hasSubscription, setHasSubscription] = useState(false)
@@ -62,28 +65,29 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
   const { toast } = useToast()
 
   useEffect(() => {
-    setRSVPs(getRSVPsForEvent(event.id))
-    const checkPremiumStatus = () => {
-      const premiumStatus = localStorage.getItem("user_premium") === "true"
+    const loadRSVPs = async () => {
+      setLoading(true)
+      const eventRSVPs = await getRSVPsForEvent(event.id)
+      setRSVPs(eventRSVPs)
+      setLoading(false)
+    }
+
+    loadRSVPs()
+
+    const checkPremium = async () => {
+      const premiumStatus = await checkPremiumStatus()
       setHasSubscription(premiumStatus)
     }
 
-    checkPremiumStatus()
+    checkPremium()
 
-    // Listen for storage changes to update premium status across tabs/components
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "user_premium") {
-        checkPremiumStatus()
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    return () => window.removeEventListener("storage", handleStorageChange)
+    const interval = setInterval(checkPremium, 5000)
+    return () => clearInterval(interval)
   }, [event.id])
 
   const attendingRSVPs = rsvps.filter((rsvp) => rsvp.attending)
   const notAttendingRSVPs = rsvps.filter((rsvp) => !rsvp.attending)
-  const totalAttending = attendingRSVPs.reduce((sum, rsvp) => sum + rsvp.partySize, 0)
+  const totalAttending = attendingRSVPs.reduce((sum, rsvp) => sum + (rsvp.partySize || 0), 0)
   const totalNotAttending = notAttendingRSVPs.length
 
   const guestPortalUrl = `${window.location.origin}/rsvp/${event.id}`
@@ -144,7 +148,34 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
     })
   }
 
-  const handleEditEvent = () => {
+  const formatDeadline = (deadline: string) => {
+    const deadlineDate = new Date(deadline)
+
+    // Check if the deadline includes a time component (has 'T' in the string)
+    const hasTime = deadline.includes("T")
+
+    if (hasTime) {
+      // Display both date and time
+      return deadlineDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    } else {
+      // Display only date
+      return deadlineDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    }
+  }
+
+  const handleEditEvent = async () => {
     const updatedEvent: Event = {
       ...event,
       title: editForm.title,
@@ -156,7 +187,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
       deadline: editForm.deadline || undefined,
     }
 
-    updateEvent(event.id, userId, updatedEvent)
+    await updateEvent(event.id, userId, updatedEvent)
     onEventUpdated(updatedEvent)
     setShowEditDialog(false)
     toast({
@@ -165,9 +196,10 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
     })
   }
 
-  const handleRemoveGuest = (guestEmail: string, guestName: string) => {
-    removeRSVP(event.id, guestEmail)
-    setRSVPs(getRSVPsForEvent(event.id))
+  const handleRemoveGuest = async (guestEmail: string, guestName: string) => {
+    await removeRSVP(event.id, guestEmail)
+    const updatedRSVPs = await getRSVPsForEvent(event.id)
+    setRSVPs(updatedRSVPs)
     toast({
       title: "Guest removed",
       description: `${guestName} has been removed from the guest list.`,
@@ -175,101 +207,29 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
   }
 
   const handleUpgradeClick = () => {
-    console.log("[v0] Opening embedded Square payment modal")
     setShowPaymentModal(true)
-
     toast({
-      title: "Payment Portal Opened",
+      title: "Opening Checkout",
       description: "Complete your payment to unlock premium features automatically.",
     })
-  }
-
-  const handleClosePaymentModal = () => {
-    console.log("[v0] Payment modal closed, checking for payment completion")
-    setShowPaymentModal(false)
-
-    // Check for payment completion indicators
-    setTimeout(() => {
-      // In a real implementation, this would check for actual payment completion
-      // For now, we'll simulate checking the Square iframe for success indicators
-      const iframe = document.querySelector('iframe[title="Square Payment"]') as HTMLIFrameElement
-
-      if (iframe) {
-        try {
-          // Listen for postMessage from Square (if available)
-          const checkPaymentStatus = () => {
-            // Simulate payment success detection
-            // In reality, Square would send postMessage or URL would change
-            console.log("[v0] Checking payment status...")
-
-            // For demo purposes, activate premium after modal was open for reasonable time
-            const modalOpenTime = Date.now() - (window as any).paymentModalOpenTime
-            if (modalOpenTime > 10000) {
-              // 10 seconds minimum interaction
-              console.log("[v0] Payment detected as successful, activating premium")
-              activatePremium()
-            } else {
-              console.log("[v0] Insufficient interaction time, payment likely not completed")
-              toast({
-                title: "Payment Not Detected",
-                description: "If you completed payment, please contact support for manual activation.",
-                variant: "destructive",
-              })
-            }
-          }
-
-          checkPaymentStatus()
-        } catch (error) {
-          console.log("[v0] Could not detect payment status:", error)
-        }
-      }
-    }, 1000)
-  }
-
-  const activatePremium = () => {
-    localStorage.setItem("user_premium", "true")
-    setHasSubscription(true)
-
-    window.dispatchEvent(
-      new StorageEvent("storage", {
-        key: "user_premium",
-        newValue: "true",
-      }),
-    )
-
-    toast({
-      title: "Premium Activated!",
-      description: "Payment successful! All premium features are now unlocked.",
-    })
-
-    console.log("[v0] Premium status automatically activated after payment detection")
   }
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl h-[80vh] flex flex-col">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Complete Your Payment</h3>
-              <Button variant="ghost" size="sm" onClick={handleClosePaymentModal} className="h-8 w-8 p-0">
+              <h3 className="text-lg font-semibold">Subscribe to Premium</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowPaymentModal(false)} className="h-8 w-8 p-0">
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex-1 p-4">
-              <iframe
-                src="https://square.link/u/khqXjy2h"
-                className="w-full h-full border-0 rounded"
-                title="Square Payment"
-                allow="payment"
-                onLoad={() => {
-                  ;(window as any).paymentModalOpenTime = Date.now()
-                  console.log("[v0] Payment iframe loaded")
-                }}
-              />
+            <div className="flex-1 overflow-auto p-4">
+              <Checkout productId="premium-monthly" />
             </div>
             <div className="p-4 border-t bg-gray-50 text-center text-sm text-gray-600">
-              <p>Secure payment powered by Square</p>
+              <p>Secure payment powered by Stripe</p>
               <p className="mt-1">Premium features will unlock automatically after payment</p>
             </div>
           </div>
@@ -403,7 +363,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
             {event.deadline && (
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                Deadline: {formatDate(event.deadline.split("T")[0], event.deadline.split("T")[1])}
+                Deadline: {formatDeadline(event.deadline)}
               </div>
             )}
           </div>
@@ -438,7 +398,11 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{rsvps.length}</div>
+            {loading ? (
+              <div className="text-2xl font-bold">...</div>
+            ) : (
+              <div className="text-2xl font-bold">{rsvps.length || 0}</div>
+            )}
             <p className="text-xs text-muted-foreground">Guest responses received</p>
           </CardContent>
         </Card>
@@ -457,7 +421,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
                 </div>
               </div>
             )}
-            <div className="text-2xl font-bold text-green-600">{totalAttending}</div>
+            <div className="text-2xl font-bold text-green-600">{totalAttending || 0}</div>
             <p className="text-xs text-muted-foreground">Total guests attending</p>
           </CardContent>
         </Card>
@@ -476,29 +440,34 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
                 </div>
               </div>
             )}
-            <div className="text-2xl font-bold text-red-600">{totalNotAttending}</div>
+            <div className="text-2xl font-bold text-red-600">{totalNotAttending || 0}</div>
             <p className="text-xs text-muted-foreground">Guests not attending</p>
           </CardContent>
         </Card>
 
         <Card className={!hasSubscription ? "relative" : ""}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Response Rate</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-muted-foreground" />
+              Response Rate
+            </CardTitle>
+            <CardDescription>Percentage of guests who responded</CardDescription>
           </CardHeader>
           <CardContent className="relative">
             {!hasSubscription && (
               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded flex items-center justify-center z-10">
                 <div className="text-center">
-                  <Crown className="h-5 w-5 text-amber-600 mx-auto mb-1" />
-                  <p className="text-xs font-medium text-gray-700">Premium</p>
+                  <Crown className="h-6 w-6 text-amber-600 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-gray-700">Premium</p>
                 </div>
               </div>
             )}
             <div className="text-2xl font-bold">
-              {rsvps.length > 0
-                ? Math.round(((attendingRSVPs.length + notAttendingRSVPs.length) / rsvps.length) * 100)
-                : 0}
+              {loading
+                ? "..."
+                : rsvps.length > 0
+                  ? `${Math.round(((attendingRSVPs.length + notAttendingRSVPs.length) / rsvps.length) * 100)}`
+                  : "0"}
               %
             </div>
             <p className="text-xs text-muted-foreground">Of total invitations</p>
@@ -520,14 +489,13 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded flex items-center justify-center z-10">
                 <div className="text-center">
                   <Crown className="h-6 w-6 text-amber-600 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700 mb-1">Premium Feature</p>
-                  <Button size="sm" onClick={handleUpgradeClick} className="bg-amber-600 hover:bg-amber-700">
-                    Upgrade for $0.15/month
-                  </Button>
+                  <p className="text-sm font-medium text-gray-700">Premium</p>
                 </div>
               </div>
             )}
-            {attendingRSVPs.length === 0 ? (
+            {loading ? (
+              <p className="text-muted-foreground text-center py-8">Loading...</p>
+            ) : attendingRSVPs.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">No guests have confirmed attendance yet.</p>
             ) : (
               <div className="space-y-4">
@@ -573,14 +541,13 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded flex items-center justify-center z-10">
                 <div className="text-center">
                   <Crown className="h-6 w-6 text-amber-600 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700 mb-1">Premium Feature</p>
-                  <Button size="sm" onClick={handleUpgradeClick} className="bg-amber-600 hover:bg-amber-700">
-                    Upgrade for $0.15/month
-                  </Button>
+                  <p className="text-sm font-medium text-gray-700">Premium</p>
                 </div>
               </div>
             )}
-            {notAttendingRSVPs.length === 0 ? (
+            {loading ? (
+              <p className="text-muted-foreground text-center py-8">Loading...</p>
+            ) : notAttendingRSVPs.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">No guests have declined yet.</p>
             ) : (
               <div className="space-y-4">

@@ -31,50 +31,61 @@ export default function RSVPPage() {
   })
 
   useEffect(() => {
-    const eventData = getEvent(eventId)
-    setEvent(eventData)
-    setLoading(false)
+    const loadEventData = async () => {
+      setLoading(true)
+      const eventData = await getEvent(eventId)
+      setEvent(eventData)
 
-    if (eventData?.deadline) {
-      const deadlineDate = new Date(eventData.deadline)
-      const now = new Date()
-      setIsDeadlinePassed(now > deadlineDate)
-    }
+      console.log("[v0] Loaded event data:", eventData)
+      console.log("[v0] Event deadline:", eventData?.deadline)
 
-    // Check if user already submitted RSVP
-    const rsvps = getRSVPsForEvent(eventId)
-    const existingEmail = localStorage.getItem(`rsvp-email-${eventId}`)
-    if (existingEmail) {
-      const existing = rsvps.find((r) => r.guestEmail === existingEmail)
-      if (existing) {
-        setExistingRSVP(existing)
-        setFormData({
-          guestName: existing.guestName,
-          guestEmail: existing.guestEmail,
-          attending: existing.attending ? "yes" : "no",
-          partySize: existing.partySize.toString(),
-        })
+      if (eventData?.deadline) {
+        const deadlineDate = new Date(eventData.deadline)
+        const now = new Date()
+
+        console.log("[v0] Deadline date object:", deadlineDate)
+        console.log("[v0] Current date object:", now)
+        console.log("[v0] Is deadline passed?", now > deadlineDate)
+
+        setIsDeadlinePassed(now > deadlineDate)
       }
+
+      const rsvps = await getRSVPsForEvent(eventId)
+      const existingEmail = localStorage.getItem(`rsvp-email-${eventId}`)
+      if (existingEmail) {
+        const existing = rsvps.find((r) => r.guest_email === existingEmail)
+        if (existing) {
+          setExistingRSVP(existing)
+          setFormData({
+            guestName: existing.guest_name,
+            guestEmail: existing.guest_email,
+            attending: existing.attending ? "yes" : "no",
+            partySize: existing.party_size.toString(),
+          })
+        }
+      }
+
+      setLoading(false)
     }
+
+    loadEventData()
   }, [eventId])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!event) return
 
-    const rsvp: RSVP = {
-      id: existingRSVP?.id || crypto.randomUUID(),
-      eventId: event.id,
-      guestName: formData.guestName,
-      guestEmail: formData.guestEmail,
+    const rsvpData = {
+      event_id: event.id,
+      guest_name: formData.guestName,
+      guest_email: formData.guestEmail,
       attending: formData.attending === "yes",
-      partySize: Number.parseInt(formData.partySize),
+      party_size: Number.parseInt(formData.partySize),
       message: "",
-      createdAt: existingRSVP?.createdAt || new Date().toISOString(),
     }
 
-    saveRSVP(rsvp)
+    await saveRSVP(rsvpData)
     localStorage.setItem(`rsvp-email-${eventId}`, formData.guestEmail)
     setSubmitted(true)
 
@@ -105,12 +116,29 @@ export default function RSVPPage() {
 
   const formatDeadline = (deadline: string) => {
     const deadlineDate = new Date(deadline)
-    return deadlineDate.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+
+    // Check if the deadline includes a time component (has 'T' in the string)
+    const hasTime = deadline.includes("T")
+
+    if (hasTime) {
+      // Display both date and time
+      return deadlineDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    } else {
+      // Display only date
+      return deadlineDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    }
   }
 
   if (loading) {
@@ -139,7 +167,7 @@ export default function RSVPPage() {
     )
   }
 
-  if (!event.active || isDeadlinePassed) {
+  if (isDeadlinePassed) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md mx-auto">
@@ -266,15 +294,15 @@ export default function RSVPPage() {
                 {formData.attending === "yes" && (
                   <div className="space-y-2">
                     <Label htmlFor="partySize">How many people will attend? (Including yourself) *</Label>
-                    {event.guestLimit && (
-                      <p className="text-sm text-muted-foreground">Maximum {event.guestLimit} guests per person</p>
+                    {event.guest_limit && (
+                      <p className="text-sm text-muted-foreground">Maximum {event.guest_limit} guests per person</p>
                     )}
                     <Select value={formData.partySize} onValueChange={(value) => handleChange("partySize", value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select party size" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({ length: event.guestLimit || 10 }, (_, i) => i + 1).map((num) => (
+                        {Array.from({ length: event.guest_limit || 10 }, (_, i) => i + 1).map((num) => (
                           <SelectItem key={num} value={num.toString()}>
                             {num} {num === 1 ? "guest" : "guests"}
                           </SelectItem>
