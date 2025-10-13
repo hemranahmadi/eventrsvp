@@ -50,6 +50,26 @@ export default function SignUpPage() {
 
       console.log("[v0] Sign up successful, user ID:", signUpData.user?.id)
 
+      if (signUpData.user?.id) {
+        try {
+          const { error: profileError } = await supabase.from("user_profiles").insert({
+            id: signUpData.user.id,
+            subscription_status: "free",
+            is_premium: false,
+          })
+
+          if (profileError) {
+            console.error("[v0] Profile creation error:", profileError)
+            // Don't throw - let user continue even if profile creation fails
+          } else {
+            console.log("[v0] User profile created successfully")
+          }
+        } catch (profileErr) {
+          console.error("[v0] Profile creation failed:", profileErr)
+          // Don't throw - let user continue
+        }
+      }
+
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email,
         options: {

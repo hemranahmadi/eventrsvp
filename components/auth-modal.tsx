@@ -96,6 +96,26 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
       console.log("[v0] Registration successful, user ID:", data.user?.id)
 
+      if (data.user?.id) {
+        try {
+          const { error: profileError } = await supabase.from("user_profiles").insert({
+            id: data.user.id,
+            subscription_status: "free",
+            is_premium: false,
+          })
+
+          if (profileError) {
+            console.error("[v0] Profile creation error:", profileError)
+            // Don't throw - let user continue even if profile creation fails
+          } else {
+            console.log("[v0] User profile created successfully")
+          }
+        } catch (profileErr) {
+          console.error("[v0] Profile creation failed:", profileErr)
+          // Don't throw - let user continue
+        }
+      }
+
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: registerData.email,
         options: {
