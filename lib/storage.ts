@@ -11,7 +11,15 @@ export async function saveEvent(event: Omit<Event, "id" | "created_at">, userId:
   const { data, error } = await supabase
     .from("events")
     .insert({
-      ...event,
+      title: event.title,
+      description: event.description,
+      date: event.date,
+      time: event.time,
+      location: event.location,
+      guest_limit: event.guest_limit,
+      deadline: event.deadline,
+      host_name: event.host_name,
+      host_email: event.host_email,
       host_user_id: userId,
     })
     .select()
