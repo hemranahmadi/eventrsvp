@@ -78,6 +78,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
       const supabase = createClient()
 
+      console.log("[v0] Calling supabase.auth.signUp...")
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: registerData.email,
         password: registerData.password,
@@ -90,13 +91,25 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       })
 
       if (signUpError) {
-        console.error("[v0] Registration error:", signUpError)
+        console.error("[v0] SignUp error details:", {
+          message: signUpError.message,
+          status: signUpError.status,
+          code: (signUpError as any).code,
+          details: (signUpError as any).details,
+          hint: (signUpError as any).hint,
+          fullError: signUpError,
+        })
         throw signUpError
       }
 
-      console.log("[v0] Registration successful, user ID:", data.user?.id)
+      console.log("[v0] SignUp successful, user data:", {
+        userId: data.user?.id,
+        email: data.user?.email,
+        confirmed: data.user?.confirmed_at,
+      })
 
       if (data.user?.id) {
+        console.log("[v0] Creating user profile...")
         try {
           const { error: profileError } = await supabase.from("user_profiles").insert({
             id: data.user.id,
@@ -105,17 +118,22 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           })
 
           if (profileError) {
-            console.error("[v0] Profile creation error:", profileError)
-            // Don't throw - let user continue even if profile creation fails
+            console.error("[v0] Profile creation error details:", {
+              message: profileError.message,
+              code: profileError.code,
+              details: profileError.details,
+              hint: profileError.hint,
+              fullError: profileError,
+            })
           } else {
             console.log("[v0] User profile created successfully")
           }
         } catch (profileErr) {
-          console.error("[v0] Profile creation failed:", profileErr)
-          // Don't throw - let user continue
+          console.error("[v0] Profile creation exception:", profileErr)
         }
       }
 
+      console.log("[v0] Sending verification email...")
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: registerData.email,
         options: {
@@ -127,17 +145,25 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         console.log("[v0] OTP send error:", otpError)
       }
 
+      console.log("[v0] Registration complete, redirecting to verify page")
       onClose()
       router.push(`/auth/verify?email=${encodeURIComponent(registerData.email)}`)
     } catch (err: any) {
-      console.error("[v0] Registration error:", err)
+      console.error("[v0] Registration exception:", {
+        message: err?.message,
+        name: err?.name,
+        stack: err?.stack,
+        fullError: err,
+      })
 
       let errorMessage = "Registration failed"
 
-      if (err.message?.includes("already registered")) {
+      if (err.message?.includes("already registered") || err.message?.includes("already been registered")) {
         errorMessage = "An account with this email already exists"
       } else if (err.message?.includes("invalid email")) {
         errorMessage = "Please enter a valid email address"
+      } else if (err.message?.includes("Password")) {
+        errorMessage = err.message
       } else if (err.message) {
         errorMessage = err.message
       }
