@@ -2,6 +2,7 @@
 
 import { stripe } from "@/lib/stripe"
 import { PRODUCTS } from "@/lib/products"
+import { createClient } from "@/lib/supabase/server"
 
 export async function startCheckoutSession(productId: string) {
   const product = PRODUCTS.find((p) => p.id === productId)
@@ -33,4 +34,36 @@ export async function startCheckoutSession(productId: string) {
   })
 
   return session.client_secret
+}
+
+export async function createCustomerPortalSession() {
+  const supabase = await createClient()
+
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Not authenticated")
+  }
+
+  // Get user's Stripe customer ID from database
+  const { data: profile, error } = await supabase
+    .from("user_profiles")
+    .select("stripe_customer_id")
+    .eq("id", user.id)
+    .single()
+
+  if (error || !profile?.stripe_customer_id) {
+    throw new Error("No active subscription found")
+  }
+
+  // Create Customer Portal session
+  const session = await stripe.billingPortal.sessions.create({
+    customer: profile.stripe_customer_id,
+    return_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/settings`,
+  })
+
+  return session.url
 }

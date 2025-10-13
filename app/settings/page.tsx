@@ -7,20 +7,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/hooks/use-auth"
-import { ArrowLeft, UserIcon, Crown, CreditCard, AlertTriangle, X, Loader2 } from "lucide-react"
+import { ArrowLeft, UserIcon, Crown, CreditCard, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { checkPremiumStatus } from "@/lib/subscription"
-import { createBrowserClient } from "@/lib/supabase/client"
 import Checkout from "@/components/checkout"
+import { createCustomerPortalSession } from "@/app/actions/stripe"
 
 export default function SettingsPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
   const [isPremium, setIsPremium] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [isManagingBilling, setIsManagingBilling] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -55,48 +55,29 @@ export default function SettingsPage() {
     })
   }
 
-  const handleCancelSubscription = async () => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    )
-
-    if (user) {
-      await supabase.from("user_profiles").upsert({
-        id: user.id,
-        is_premium: false,
-        subscription_status: "cancelled",
-      })
-    }
-
-    setIsPremium(false)
-    setShowCancelConfirm(false)
-
-    toast({
-      title: "Subscription Cancelled",
-      description:
-        "Your premium subscription has been cancelled. You'll retain access until the end of your billing period.",
-    })
-  }
-
   const handleManageSubscription = async () => {
-    // In production, you would create a Stripe billing portal session
-    // For now, we'll show a message
-    toast({
-      title: "Manage Subscription",
-      description: "Redirecting to billing portal...",
-    })
+    setIsManagingBilling(true)
+    try {
+      const portalUrl = await createCustomerPortalSession()
+      window.location.href = portalUrl
+    } catch (error) {
+      console.error("[v0] Error creating portal session:", error)
+      toast({
+        title: "Error",
+        description: "Failed to open billing portal. Please try again.",
+        variant: "destructive",
+      })
+      setIsManagingBilling(false)
+    }
   }
 
   const handleUpgrade = async () => {
     setShowPaymentModal(true)
 
-    // Clear any existing polling interval
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current)
     }
 
-    // Start polling for premium status every 3 seconds
     pollIntervalRef.current = setInterval(async () => {
       try {
         const premiumStatus = await checkPremiumStatus()
@@ -117,7 +98,6 @@ export default function SettingsPage() {
       }
     }, 3000)
 
-    // Stop polling after 5 minutes
     setTimeout(() => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current)
@@ -244,14 +224,16 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex gap-2">
                   {isPremium ? (
-                    <>
-                      <Button variant="outline" onClick={handleManageSubscription}>
-                        Manage Billing
-                      </Button>
-                      <Button variant="destructive" onClick={() => setShowCancelConfirm(true)}>
-                        Cancel
-                      </Button>
-                    </>
+                    <Button variant="outline" onClick={handleManageSubscription} disabled={isManagingBilling}>
+                      {isManagingBilling ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Opening...
+                        </>
+                      ) : (
+                        "Manage Subscription"
+                      )}
+                    </Button>
                   ) : (
                     <Button onClick={handleUpgrade}>Upgrade to Premium</Button>
                   )}
@@ -279,44 +261,16 @@ export default function SettingsPage() {
                       Export guest lists
                     </li>
                   </ul>
+                  <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                    <p>
+                      Click <strong>Manage Subscription</strong> to update your payment method, view invoices, or cancel
+                      your subscription.
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
-
-          {/* Cancel Subscription Confirmation */}
-          {showCancelConfirm && (
-            <Card className="border-destructive">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-destructive">
-                  <AlertTriangle className="h-5 w-5" />
-                  Cancel Subscription
-                </CardTitle>
-                <CardDescription>Are you sure you want to cancel your premium subscription?</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-destructive/10 rounded-lg">
-                  <p className="text-sm">
-                    <strong>What happens when you cancel:</strong>
-                  </p>
-                  <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                    <li>• You'll lose access to premium analytics</li>
-                    <li>• Advanced guest management will be disabled</li>
-                    <li>• You can resubscribe anytime</li>
-                    <li>• Your event data will be preserved</li>
-                  </ul>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="destructive" onClick={handleCancelSubscription} className="flex-1">
-                    Yes, Cancel Subscription
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowCancelConfirm(false)} className="flex-1">
-                    Keep Subscription
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </main>
 
