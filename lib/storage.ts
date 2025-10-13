@@ -8,31 +8,32 @@ export async function saveEvent(event: Omit<Event, "id" | "created_at">, userId:
   console.log("[v0] Saving event with data:", event)
   console.log("[v0] Deadline in saveEvent:", event.deadline)
 
-  const { data, error } = await supabase.rpc("insert_event", {
-    p_title: event.title,
-    p_description: event.description,
-    p_date: event.date,
-    p_time: event.time,
-    p_location: event.location,
-    p_guest_limit: event.guest_limit,
-    p_deadline: event.deadline,
-    p_host_name: event.host_name,
-    p_host_email: event.host_email,
-    p_host_user_id: userId,
-  })
+  const { data, error } = await supabase
+    .from("events")
+    .insert({
+      title: event.title,
+      description: event.description,
+      date: event.date,
+      time: event.time,
+      location: event.location,
+      guest_limit: event.guest_limit,
+      deadline: event.deadline,
+      host_name: event.host_name,
+      host_email: event.host_email,
+      host_user_id: userId,
+    })
+    .select()
+    .single()
 
   if (error) {
     console.error("[v0] Error saving event:", error)
     throw new Error(`Error saving event: ${error.message}`)
   }
 
-  // The function now returns a JSON object directly
-  const savedEvent = data as Event
+  console.log("[v0] Event saved successfully:", data)
+  console.log("[v0] Saved event deadline:", data?.deadline)
 
-  console.log("[v0] Event saved successfully:", savedEvent)
-  console.log("[v0] Saved event deadline:", savedEvent?.deadline)
-
-  return savedEvent
+  return data
 }
 
 export async function getEvents(userId?: string): Promise<Event[]> {
