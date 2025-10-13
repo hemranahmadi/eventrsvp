@@ -1,15 +1,21 @@
 import { createBrowserClient } from "@supabase/ssr"
 
 export async function checkPremiumStatus(): Promise<boolean> {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  )
-
   try {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser()
+
+    if (authError) {
+      console.error("[v0] Auth error in checkPremiumStatus:", authError.message)
+      return false
+    }
 
     if (!user) {
       return false
@@ -46,7 +52,13 @@ export async function activatePremium(): Promise<{ success: boolean; error?: str
   try {
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser()
+
+    if (authError) {
+      console.error("[v0] Auth error in activatePremium:", authError.message)
+      return { success: false, error: authError.message }
+    }
 
     if (!user) {
       return { success: false, error: "Not authenticated" }

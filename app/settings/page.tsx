@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -23,6 +23,7 @@ export default function SettingsPage() {
   const [isActivating, setIsActivating] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -85,25 +86,43 @@ export default function SettingsPage() {
   const handleUpgrade = async () => {
     setShowPaymentModal(true)
 
-    const pollInterval = setInterval(async () => {
-      const premiumStatus = await checkPremiumStatus()
-      if (premiumStatus) {
-        setIsPremium(true)
-        setShowPaymentModal(false)
-        clearInterval(pollInterval)
-        toast({
-          title: "Premium Activated!",
-          description: "Your payment was successful. All premium features are now unlocked.",
-        })
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+    }
+
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const premiumStatus = await checkPremiumStatus()
+        if (premiumStatus) {
+          setIsPremium(true)
+          setShowPaymentModal(false)
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
+          toast({
+            title: "Premium Activated!",
+            description: "Your payment was successful. All premium features are now unlocked.",
+          })
+        }
+      } catch (error) {
+        console.error("[v0] Error polling premium status:", error)
       }
-    }, 3000) // Check every 3 seconds
+    }, 3000)
 
     setTimeout(() => {
-      clearInterval(pollInterval)
-    }, 300000) // 5 minutes
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+        pollIntervalRef.current = null
+      }
+    }, 300000)
   }
 
   const handleClosePaymentModal = async () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+      pollIntervalRef.current = null
+    }
     setShowPaymentModal(false)
   }
 
@@ -129,6 +148,14 @@ export default function SettingsPage() {
 
     setIsActivating(false)
   }
+
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+      }
+    }
+  }, [])
 
   if (isLoading) {
     return (
