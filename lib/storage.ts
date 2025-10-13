@@ -8,32 +8,31 @@ export async function saveEvent(event: Omit<Event, "id" | "created_at">, userId:
   console.log("[v0] Saving event with data:", event)
   console.log("[v0] Deadline in saveEvent:", event.deadline)
 
-  const { data, error } = await supabase
-    .from("events")
-    .insert({
-      title: event.title,
-      description: event.description,
-      date: event.date,
-      time: event.time,
-      location: event.location,
-      guest_limit: event.guest_limit,
-      deadline: event.deadline,
-      host_name: event.host_name,
-      host_email: event.host_email,
-      host_user_id: userId,
-    })
-    .select()
-    .single()
+  const { data, error } = await supabase.rpc("insert_event", {
+    p_title: event.title,
+    p_description: event.description,
+    p_date: event.date,
+    p_time: event.time,
+    p_location: event.location,
+    p_guest_limit: event.guest_limit,
+    p_deadline: event.deadline,
+    p_host_name: event.host_name,
+    p_host_email: event.host_email,
+    p_host_user_id: userId,
+  })
 
   if (error) {
     console.error("Error saving event:", error)
     return null
   }
 
-  console.log("[v0] Event saved successfully:", data)
-  console.log("[v0] Saved event deadline:", data.deadline)
+  // RPC returns an array, get the first item
+  const savedEvent = Array.isArray(data) ? data[0] : data
 
-  return data
+  console.log("[v0] Event saved successfully:", savedEvent)
+  console.log("[v0] Saved event deadline:", savedEvent?.deadline)
+
+  return savedEvent
 }
 
 export async function getEvents(userId?: string): Promise<Event[]> {
