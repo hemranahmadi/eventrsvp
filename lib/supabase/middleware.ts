@@ -25,17 +25,10 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  const isAuthPage = request.nextUrl.pathname.startsWith("/auth/")
-
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-
-    if (user && request.nextUrl.pathname === "/auth/reset-password") {
-      console.log("[v0] User on reset password page, allowing access")
-      return supabaseResponse
-    }
   } catch (error) {
     // If refresh token is invalid, clear the session and continue
     // This allows the user to access the page as logged out

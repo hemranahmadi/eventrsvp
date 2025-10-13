@@ -27,24 +27,18 @@ export default function ForgotPasswordPage() {
     setLoading(true)
 
     try {
-      const redirectUrl = `${window.location.origin}/auth/callback?type=recovery&next=/auth/reset-password`
-
-      console.log("[v0] Sending password reset email to:", email)
-      console.log("[v0] Redirect URL:", redirectUrl)
+      const redirectUrl = process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL
+        ? `${process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL}/auth/reset-password`
+        : `${window.location.origin}/auth/reset-password`
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       })
 
-      if (error) {
-        console.error("[v0] Password reset error:", error)
-        throw error
-      }
+      if (error) throw error
 
-      console.log("[v0] Password reset email sent successfully")
       setSuccess(true)
     } catch (err: any) {
-      console.error("[v0] Password reset exception:", err)
       setError(err.message || "Failed to send reset email")
     } finally {
       setLoading(false)
