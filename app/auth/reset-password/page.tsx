@@ -16,6 +16,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
   const [hasValidSession, setHasValidSession] = useState(false)
   const router = useRouter()
 
@@ -25,14 +26,60 @@ export default function ResetPasswordPage() {
   )
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        setError("Invalid or expired reset link. Please request a new one.")
-        setHasValidSession(false)
+    const handlePasswordReset = async () => {
+      console.log("[v0] Reset password page loaded")
+
+      // Check if we have tokens in the URL hash
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken = hashParams.get("access_token")
+      const refreshToken = hashParams.get("refresh_token")
+      const type = hashParams.get("type")
+
+      console.log("[v0] Hash params:", {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        type,
+      })
+
+      // If we have tokens in the hash, set the session
+      if (accessToken && refreshToken) {
+        console.log("[v0] Setting session from hash tokens")
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+
+        if (error) {
+          console.error("[v0] Error setting session:", error)
+          setError("Invalid or expired reset link. Please request a new one.")
+          setHasValidSession(false)
+        } else {
+          console.log("[v0] Session set successfully:", data.session?.user?.email)
+          setHasValidSession(true)
+          // Clear the hash from the URL for security
+          window.history.replaceState(null, "", window.location.pathname)
+        }
       } else {
-        setHasValidSession(true)
+        // No tokens in hash, check if we already have a session
+        console.log("[v0] No tokens in hash, checking existing session")
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (!session) {
+          console.log("[v0] No valid session found")
+          setError("Invalid or expired reset link. Please request a new one.")
+          setHasValidSession(false)
+        } else {
+          console.log("[v0] Valid session found:", session.user?.email)
+          setHasValidSession(true)
+        }
       }
-    })
+
+      setCheckingSession(false)
+    }
+
+    handlePasswordReset()
   }, [supabase.auth])
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -52,22 +99,37 @@ export default function ResetPasswordPage() {
     setLoading(true)
 
     try {
+      console.log("[v0] Updating password")
       const { error } = await supabase.auth.updateUser({
         password: password,
       })
 
       if (error) throw error
 
+      console.log("[v0] Password updated successfully")
       setSuccess(true)
       await supabase.auth.signOut()
       setTimeout(() => {
-        router.push("/auth/login")
+        router.push("/auth/login?message=password_reset_success")
       }, 2000)
     } catch (err: any) {
+      console.error("[v0] Error updating password:", err)
       setError(err.message || "Failed to reset password")
     } finally {
       setLoading(false)
     }
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center text-gray-600">Verifying reset link...</div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   if (success) {
