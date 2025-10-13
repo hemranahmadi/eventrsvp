@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
   const next = requestUrl.searchParams.get("next") ?? "/"
+  const type = requestUrl.searchParams.get("type")
 
   if (code) {
     const cookieStore = cookies()
@@ -34,16 +35,11 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Check if this is a password recovery flow
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (user) {
-        // Redirect to reset password page for password recovery
+      if (type === "recovery") {
         return NextResponse.redirect(new URL("/auth/reset-password", request.url))
       }
 
+      // For other flows (email verification, etc.), redirect to the next page
       return NextResponse.redirect(new URL(next, request.url))
     }
   }
