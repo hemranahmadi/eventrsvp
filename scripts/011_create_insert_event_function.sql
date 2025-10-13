@@ -21,18 +21,19 @@ RETURNS JSON AS $$
 DECLARE
   new_event JSON;
 BEGIN
+  -- Quote "time" and "active" column names since they are reserved keywords in PostgreSQL
   INSERT INTO events (
     title,
     description,
     date,
-    time,
+    "time",
     location,
     guest_limit,
     deadline,
     host_name,
     host_email,
     host_user_id,
-    active
+    "active"
   ) VALUES (
     p_title,
     p_description,
@@ -51,14 +52,14 @@ BEGIN
     'title', title,
     'description', description,
     'date', date,
-    'time', time,
+    'time', "time",
     'location', location,
     'guest_limit', guest_limit,
     'deadline', deadline,
     'host_name', host_name,
     'host_email', host_email,
     'host_user_id', host_user_id,
-    'active', active,
+    'active', "active",
     'created_at', created_at
   ) INTO new_event;
   
