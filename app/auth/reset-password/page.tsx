@@ -28,61 +28,26 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     const handlePasswordReset = async () => {
       console.log("[v0] Reset password page loaded")
-      console.log("[v0] Full URL:", window.location.href)
-      console.log("[v0] Hash:", window.location.hash)
-      console.log("[v0] Search params:", window.location.search)
 
-      // Check if we have tokens in the URL hash (fallback for direct token links)
-      const hashParams = new URLSearchParams(window.location.hash.substring(1))
-      const accessToken = hashParams.get("access_token")
-      const refreshToken = hashParams.get("refresh_token")
-      const type = hashParams.get("type")
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
-      console.log("[v0] Hash params:", {
-        hasAccessToken: !!accessToken,
-        hasRefreshToken: !!refreshToken,
-        type,
-        fullHash: window.location.hash,
+      // Check for existing session (should be set by callback route)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      console.log("[v0] Session check result:", {
+        hasSession: !!session,
+        userEmail: session?.user?.email,
       })
 
-      // If we have tokens in the hash, set the session
-      if (accessToken && refreshToken) {
-        console.log("[v0] Setting session from hash tokens")
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        })
-
-        if (error) {
-          console.error("[v0] Error setting session:", error)
-          setError("Invalid or expired reset link. Please request a new one.")
-          setHasValidSession(false)
-        } else {
-          console.log("[v0] Session set successfully:", data.session?.user?.email)
-          setHasValidSession(true)
-          // Clear the hash from the URL for security
-          window.history.replaceState(null, "", window.location.pathname)
-        }
+      if (!session) {
+        console.log("[v0] No valid session found")
+        setError("Invalid or expired reset link. Please request a new one.")
+        setHasValidSession(false)
       } else {
-        // No tokens in hash, check if we already have a session (from callback route)
-        console.log("[v0] No tokens in hash, checking existing session")
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
-        console.log("[v0] Session check result:", {
-          hasSession: !!session,
-          userEmail: session?.user?.email,
-        })
-
-        if (!session) {
-          console.log("[v0] No valid session found")
-          setError("Invalid or expired reset link. Please request a new one.")
-          setHasValidSession(false)
-        } else {
-          console.log("[v0] Valid session found:", session.user?.email)
-          setHasValidSession(true)
-        }
+        console.log("[v0] Valid session found:", session.user?.email)
+        setHasValidSession(true)
       }
 
       setCheckingSession(false)

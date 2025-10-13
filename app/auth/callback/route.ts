@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   console.log("[v0] Callback route hit:", { code: !!code, type, next })
 
   if (code) {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -24,10 +24,8 @@ export async function GET(request: NextRequest) {
           setAll(cookiesToSet) {
             try {
               cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-            } catch {
-              // The `setAll` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
+            } catch (error) {
+              console.error("[v0] Error setting cookies:", error)
             }
           },
         },
@@ -35,20 +33,36 @@ export async function GET(request: NextRequest) {
     )
 
     console.log("[v0] Exchanging code for session")
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!error) {
-      console.log("[v0] Code exchange successful, type:", type)
-      if (type === "recovery") {
-        console.log("[v0] Redirecting to reset password page")
-        return NextResponse.redirect(new URL("/auth/reset-password", request.url))
-      }
+    if (!error && data.session) {
+      console.log("[v0] Code exchange successful, session user:", data.session.user.email)
+      console.log("[v0] Type parameter:", type)
 
-      // For other flows (email verification, etc.), redirect to the next page
-      console.log("[v0] Redirecting to:", next)
-      return NextResponse.redirect(new URL(next, request.url))
+      const redirectUrl = type === "recovery" ? "/auth/reset-password" : next
+      console.log("[v0] Redirecting to:", redirectUrl)
+
+      const response = NextResponse.redirect(new URL(redirectUrl, request.url))
+
+      // Ensure session cookies are set in the response
+      const sessionCookies = cookieStore.getAll()
+      sessionCookies.forEach((cookie) => {
+        if (cookie.name.includes("supabase") || cookie.name.includes("auth")) {
+          response.cookies.set(cookie.name, cookie.value, {
+            path: "/",
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+          })
+        }
+      })
+
+      return response
     } else {
       console.error("[v0] Code exchange failed:", error)
+      return NextResponse.redirect(
+        new URL(`/auth/login?error=${encodeURIComponent(error?.message || "Authentication failed")}`, request.url),
+      )
     }
   } else {
     console.log("[v0] No code parameter found")
