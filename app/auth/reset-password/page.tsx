@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,7 @@ export default function ResetPasswordPage() {
   const [verifying, setVerifying] = useState(true)
   const [isValidLink, setIsValidLink] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,6 +31,35 @@ export default function ResetPasswordPage() {
       console.log("[v0] Verifying password reset link")
       console.log("[v0] Current URL:", window.location.href)
       console.log("[v0] Hash:", window.location.hash)
+      console.log("[v0] Search params:", window.location.search)
+
+      const code = searchParams.get("code")
+
+      if (code) {
+        console.log("[v0] Found code parameter, exchanging for session")
+        try {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+          if (error) {
+            console.error("[v0] Error exchanging code:", error)
+            throw error
+          }
+
+          console.log("[v0] Session established via code exchange:", data.user?.email)
+          setIsValidLink(true)
+
+          // Clean up URL
+          window.history.replaceState(null, "", window.location.pathname)
+          setVerifying(false)
+          return
+        } catch (err: any) {
+          console.error("[v0] Failed to exchange code:", err)
+          setError("Invalid or expired reset link. Please request a new one.")
+          setIsValidLink(false)
+          setVerifying(false)
+          return
+        }
+      }
 
       const hashParams = new URLSearchParams(window.location.hash.substring(1))
       const accessToken = hashParams.get("access_token")
@@ -44,7 +74,7 @@ export default function ResetPasswordPage() {
 
       if (accessToken && refreshToken && type === "recovery") {
         try {
-          console.log("[v0] Setting session with recovery tokens")
+          console.log("[v0] Setting session with recovery tokens from hash")
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
@@ -65,16 +95,25 @@ export default function ResetPasswordPage() {
           setIsValidLink(false)
         }
       } else {
-        console.log("[v0] No valid recovery tokens found in URL")
-        setError("Invalid or expired reset link. Please request a new one.")
-        setIsValidLink(false)
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (session) {
+          console.log("[v0] Valid session found:", session.user.email)
+          setIsValidLink(true)
+        } else {
+          console.log("[v0] No valid recovery tokens or session found")
+          setError("Invalid or expired reset link. Please request a new one.")
+          setIsValidLink(false)
+        }
       }
 
       setVerifying(false)
     }
 
     verifyResetLink()
-  }, [supabase.auth])
+  }, [supabase.auth, searchParams])
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
