@@ -8,22 +8,18 @@ export async function saveEvent(event: Omit<Event, "id" | "created_at">, userId:
   console.log("[v0] Saving event with data:", event)
   console.log("[v0] Deadline in saveEvent:", event.deadline)
 
-  const { data, error } = await supabase
-    .from("events")
-    .insert({
-      title: event.title,
-      description: event.description,
-      date: event.date,
-      time: event.time,
-      location: event.location,
-      guest_limit: event.guest_limit,
-      deadline: event.deadline,
-      host_name: event.host_name,
-      host_email: event.host_email,
-      host_user_id: userId,
-    })
-    .select()
-    .single()
+  const { data, error } = await supabase.rpc("insert_event_dynamic", {
+    p_title: event.title,
+    p_description: event.description,
+    p_date: event.date,
+    p_time: event.time,
+    p_location: event.location,
+    p_guest_limit: event.guest_limit,
+    p_deadline: event.deadline,
+    p_host_name: event.host_name,
+    p_host_email: event.host_email,
+    p_host_user_id: userId,
+  })
 
   if (error) {
     console.error("[v0] Error saving event:", error)
@@ -41,11 +37,9 @@ export async function getEvents(userId?: string): Promise<Event[]> {
 
   if (!userId) return []
 
-  const { data, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("host_user_id", userId)
-    .order("created_at", { ascending: false })
+  const { data, error } = await supabase.rpc("get_events_dynamic", {
+    p_user_id: userId,
+  })
 
   if (error) {
     console.error("Error fetching events:", error)
