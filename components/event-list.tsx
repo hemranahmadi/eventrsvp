@@ -35,15 +35,35 @@ export function EventList({ onSelectEvent, userId }: EventListProps) {
   }
 
   const formatDate = (date: string, time: string) => {
-    const eventDate = new Date(`${date}T${time}`)
-    return eventDate.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    })
+    if (!date || !time) {
+      return "Invalid Date"
+    }
+
+    try {
+      // Parse the ISO date string to get the date part
+      const dateObj = new Date(date)
+
+      // Parse time (HH:mm format)
+      const [hours, minutes] = time.split(":").map(Number)
+
+      // Create a new date by setting the time on the date object
+      dateObj.setHours(hours, minutes, 0, 0)
+
+      if (isNaN(dateObj.getTime())) {
+        return "Invalid Date"
+      }
+
+      return dateObj.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    } catch (error) {
+      return "Invalid Date"
+    }
   }
 
   if (loading) {

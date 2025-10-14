@@ -50,7 +50,23 @@ export async function getEvents(userId?: string): Promise<Event[]> {
 }
 
 export async function getUserEvents(userId: string): Promise<Event[]> {
-  return getEvents(userId)
+  const supabase = createBrowserClient()
+
+  if (!userId) return []
+
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("host_user_id", userId)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("[v0] Error fetching user events:", error)
+    return []
+  }
+
+  console.log("[v0] Fetched events:", data)
+  return data || []
 }
 
 export async function getEvent(id: string): Promise<Event | null> {
@@ -59,10 +75,11 @@ export async function getEvent(id: string): Promise<Event | null> {
   const { data, error } = await supabase.from("events").select("*").eq("id", id).single()
 
   if (error) {
-    console.error("Error fetching event:", error)
+    console.error("[v0] Error fetching event:", error)
     return null
   }
 
+  console.log("[v0] Fetched single event:", data)
   return data
 }
 
