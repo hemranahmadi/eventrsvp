@@ -108,14 +108,11 @@ export default function RSVPPage() {
     }
 
     try {
-      // Parse the ISO date string to get the date part
-      const dateObj = new Date(date)
-
-      // Parse time (HH:mm format)
+      const [year, month, day] = date.split("-").map(Number)
       const [hours, minutes] = time.split(":").map(Number)
 
-      // Create a new date by setting the time on the date object
-      dateObj.setHours(hours, minutes, 0, 0)
+      // Create date in local timezone by passing components directly
+      const dateObj = new Date(year, month - 1, day, hours, minutes)
 
       if (isNaN(dateObj.getTime())) {
         return "Invalid Date"

@@ -40,14 +40,26 @@ export function EventList({ onSelectEvent, userId }: EventListProps) {
     }
 
     try {
-      // Parse the ISO date string to get the date part
-      const dateObj = new Date(date)
+      let year: number, month: number, day: number
 
-      // Parse time (HH:mm format)
+      // Handle ISO timestamp format (e.g., "2025-10-23T00:00:00+00:00")
+      if (date.includes("T")) {
+        const isoDate = new Date(date)
+        year = isoDate.getUTCFullYear()
+        month = isoDate.getUTCMonth() + 1
+        day = isoDate.getUTCDate()
+      } else {
+        // Handle simple date string (e.g., "2025-10-23")
+        const parts = date.split("-")
+        year = Number.parseInt(parts[0])
+        month = Number.parseInt(parts[1])
+        day = Number.parseInt(parts[2])
+      }
+
       const [hours, minutes] = time.split(":").map(Number)
 
-      // Create a new date by setting the time on the date object
-      dateObj.setHours(hours, minutes, 0, 0)
+      // Create date in local timezone
+      const dateObj = new Date(year, month - 1, day, hours, minutes)
 
       if (isNaN(dateObj.getTime())) {
         return "Invalid Date"
