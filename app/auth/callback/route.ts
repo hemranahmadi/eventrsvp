@@ -13,12 +13,6 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const cookieStore = await cookies()
-    const response = NextResponse.next({
-      request: {
-        headers: request.headers,
-      },
-    })
-
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -28,10 +22,11 @@ export async function GET(request: NextRequest) {
             return cookieStore.getAll()
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-              response.cookies.set(name, value, options)
-            })
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+            } catch (error) {
+              console.error("[v0] Error setting cookies:", error)
+            }
           },
         },
       },
@@ -47,7 +42,7 @@ export async function GET(request: NextRequest) {
       const redirectUrl = type === "recovery" ? `/auth/reset-password?session_verified=true` : next
       console.log("[v0] Redirecting to:", redirectUrl)
 
-      return NextResponse.redirect(new URL(redirectUrl, request.url), response)
+      return NextResponse.redirect(new URL(redirectUrl, request.url))
     } else {
       console.error("[v0] Code exchange failed:", error)
       return NextResponse.redirect(

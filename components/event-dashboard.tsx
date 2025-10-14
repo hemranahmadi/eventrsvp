@@ -32,12 +32,8 @@ import {
   QrCode,
   Edit,
   Trash2,
-  Crown,
-  X,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { checkPremiumStatus } from "@/lib/subscription"
-import Checkout from "@/components/checkout"
 
 interface EventDashboardProps {
   event: Event
@@ -51,8 +47,6 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
   const [loading, setLoading] = useState(true)
   const [showQR, setShowQR] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
-  const [hasSubscription, setHasSubscription] = useState(false)
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [editForm, setEditForm] = useState({
     title: event.title,
     description: event.description || "",
@@ -73,16 +67,6 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
     }
 
     loadRSVPs()
-
-    const checkPremium = async () => {
-      const premiumStatus = await checkPremiumStatus()
-      setHasSubscription(premiumStatus)
-    }
-
-    checkPremium()
-
-    const interval = setInterval(checkPremium, 5000)
-    return () => clearInterval(interval)
   }, [event.id])
 
   const attendingRSVPs = rsvps.filter((rsvp) => rsvp.attending)
@@ -206,36 +190,8 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
     })
   }
 
-  const handleUpgradeClick = () => {
-    setShowPaymentModal(true)
-    toast({
-      title: "Opening Checkout",
-      description: "Complete your payment to unlock premium features automatically.",
-    })
-  }
-
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Subscribe to Premium</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowPaymentModal(false)} className="h-8 w-8 p-0">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex-1 overflow-auto p-4">
-              <Checkout productId="premium-monthly" />
-            </div>
-            <div className="p-4 border-t bg-gray-50 text-center text-sm text-gray-600">
-              <p>Secure payment powered by Stripe</p>
-              <p className="mt-1">Premium features will unlock automatically after payment</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="flex items-center justify-between">
         <Button variant="outline" onClick={onBack}>
           ← Back to Events
@@ -370,27 +326,6 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
         </CardContent>
       </Card>
 
-      {!hasSubscription && (
-        <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Crown className="h-6 w-6 text-amber-600" />
-                <div>
-                  <h3 className="font-semibold text-amber-900">Unlock Premium Analytics</h3>
-                  <p className="text-sm text-amber-700">
-                    Get detailed insights about your event attendance for just $0.15/month
-                  </p>
-                </div>
-              </div>
-              <Button onClick={handleUpgradeClick} className="bg-amber-600 hover:bg-amber-700">
-                Upgrade Now
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -407,45 +342,29 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
           </CardContent>
         </Card>
 
-        <Card className={!hasSubscription ? "relative" : ""}>
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Attending</CardTitle>
             <UserCheck className="h-4 w-4 text-green-600" />
           </CardHeader>
-          <CardContent className="relative">
-            {!hasSubscription && (
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded flex items-center justify-center z-10">
-                <div className="text-center">
-                  <Crown className="h-5 w-5 text-amber-600 mx-auto mb-1" />
-                  <p className="text-xs font-medium text-gray-700">Premium</p>
-                </div>
-              </div>
-            )}
+          <CardContent>
             <div className="text-2xl font-bold text-green-600">{totalAttending || 0}</div>
             <p className="text-xs text-muted-foreground">Total guests attending</p>
           </CardContent>
         </Card>
 
-        <Card className={!hasSubscription ? "relative" : ""}>
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Not Attending</CardTitle>
             <UserX className="h-4 w-4 text-red-600" />
           </CardHeader>
-          <CardContent className="relative">
-            {!hasSubscription && (
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded flex items-center justify-center z-10">
-                <div className="text-center">
-                  <Crown className="h-5 w-5 text-amber-600 mx-auto mb-1" />
-                  <p className="text-xs font-medium text-gray-700">Premium</p>
-                </div>
-              </div>
-            )}
+          <CardContent>
             <div className="text-2xl font-bold text-red-600">{totalNotAttending || 0}</div>
             <p className="text-xs text-muted-foreground">Guests not attending</p>
           </CardContent>
         </Card>
 
-        <Card className={!hasSubscription ? "relative" : ""}>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-muted-foreground" />
@@ -453,15 +372,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
             </CardTitle>
             <CardDescription>Percentage of guests who responded</CardDescription>
           </CardHeader>
-          <CardContent className="relative">
-            {!hasSubscription && (
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded flex items-center justify-center z-10">
-                <div className="text-center">
-                  <Crown className="h-6 w-6 text-amber-600 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700">Premium</p>
-                </div>
-              </div>
-            )}
+          <CardContent>
             <div className="text-2xl font-bold">
               {loading
                 ? "..."
@@ -476,7 +387,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className={!hasSubscription ? "relative" : ""}>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserCheck className="h-5 w-5 text-green-600" />
@@ -484,15 +395,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
             </CardTitle>
             <CardDescription>Guests who confirmed they will attend</CardDescription>
           </CardHeader>
-          <CardContent className="relative">
-            {!hasSubscription && (
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded flex items-center justify-center z-10">
-                <div className="text-center">
-                  <Crown className="h-6 w-6 text-amber-600 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700">Premium</p>
-                </div>
-              </div>
-            )}
+          <CardContent>
             {loading ? (
               <p className="text-muted-foreground text-center py-8">Loading...</p>
             ) : attendingRSVPs.length === 0 ? (
@@ -510,16 +413,14 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
                       <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">
                         +{rsvp.partySize} guest{rsvp.partySize !== 1 ? "s" : ""}
                       </Badge>
-                      {hasSubscription && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveGuest(rsvp.guestEmail, rsvp.guestName)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveGuest(rsvp.guestEmail, rsvp.guestName)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -528,7 +429,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
           </CardContent>
         </Card>
 
-        <Card className={!hasSubscription ? "relative" : ""}>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserX className="h-5 w-5 text-red-600" />
@@ -536,15 +437,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
             </CardTitle>
             <CardDescription>Guests who declined the invitation</CardDescription>
           </CardHeader>
-          <CardContent className="relative">
-            {!hasSubscription && (
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded flex items-center justify-center z-10">
-                <div className="text-center">
-                  <Crown className="h-6 w-6 text-amber-600 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700">Premium</p>
-                </div>
-              </div>
-            )}
+          <CardContent>
             {loading ? (
               <p className="text-muted-foreground text-center py-8">Loading...</p>
             ) : notAttendingRSVPs.length === 0 ? (
@@ -562,16 +455,14 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
                       <Badge variant="secondary" className="bg-red-50 text-red-700 border-red-200">
                         Declined
                       </Badge>
-                      {hasSubscription && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveGuest(rsvp.guestEmail, rsvp.guestName)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveGuest(rsvp.guestEmail, rsvp.guestName)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}

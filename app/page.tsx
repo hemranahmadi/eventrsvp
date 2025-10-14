@@ -9,9 +9,8 @@ import { EventDashboard } from "@/components/event-dashboard"
 import { AuthModal } from "@/components/auth-modal"
 import { useAuth } from "@/hooks/use-auth"
 import type { Event } from "@/lib/types"
-import { Plus, Calendar, LogIn, LogOut, UserIcon, Crown, Settings, ChevronDown, Loader2 } from "lucide-react"
+import { Plus, Calendar, LogIn, LogOut, UserIcon, Settings, ChevronDown, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { checkPremiumStatus } from "@/lib/subscription"
 
 type View = "list" | "create" | "dashboard"
 
@@ -19,7 +18,6 @@ export default function HomePage() {
   const [currentView, setCurrentView] = useState<View>("list")
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
-  const [isPremium, setIsPremium] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -31,21 +29,8 @@ export default function HomePage() {
   useEffect(() => {
     setIsMounted(true)
 
-    const checkPremium = async () => {
-      if (isAuthenticated && user) {
-        const premiumStatus = await checkPremiumStatus()
-        setIsPremium(premiumStatus)
-      }
-    }
-
-    checkPremium()
-
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.get("upgraded") === "true") {
-      toast({
-        title: "🎉 Welcome to Premium!",
-        description: "You now have access to all premium analytics features.",
-      })
       window.history.replaceState({}, document.title, window.location.pathname)
     }
   }, [toast, isAuthenticated, user])
@@ -147,12 +132,6 @@ export default function HomePage() {
                     >
                       <UserIcon className="h-4 w-4" />
                       <span>{user.name}</span>
-                      {isPremium && (
-                        <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs">
-                          <Crown className="h-3 w-3" />
-                          Premium
-                        </div>
-                      )}
                       <ChevronDown className={`h-4 w-4 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
                     </Button>
 

@@ -1,29 +1,21 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/hooks/use-auth"
-import { ArrowLeft, UserIcon, Crown, CreditCard, X, Loader2 } from "lucide-react"
+import { ArrowLeft, UserIcon, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { checkPremiumStatus } from "@/lib/subscription"
-import Checkout from "@/components/checkout"
-import { createCustomerPortalSession } from "@/app/actions/stripe"
 
 export default function SettingsPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
-  const [isPremium, setIsPremium] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [isManagingBilling, setIsManagingBilling] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -35,15 +27,6 @@ export default function SettingsPage() {
       setName(user.name)
       setEmail(user.email)
     }
-
-    const checkPremium = async () => {
-      if (user) {
-        const premiumStatus = await checkPremiumStatus()
-        setIsPremium(premiumStatus)
-      }
-    }
-
-    checkPremium()
   }, [user, isAuthenticated, isLoading, router])
 
   const handleUpdateAccount = async () => {
@@ -54,73 +37,6 @@ export default function SettingsPage() {
       description: "Your account information has been saved successfully.",
     })
   }
-
-  const handleManageSubscription = async () => {
-    setIsManagingBilling(true)
-    try {
-      const portalUrl = await createCustomerPortalSession()
-      window.location.href = portalUrl
-    } catch (error) {
-      console.error("[v0] Error creating portal session:", error)
-      toast({
-        title: "Error",
-        description: "Failed to open billing portal. Please try again.",
-        variant: "destructive",
-      })
-      setIsManagingBilling(false)
-    }
-  }
-
-  const handleUpgrade = async () => {
-    setShowPaymentModal(true)
-
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current)
-    }
-
-    pollIntervalRef.current = setInterval(async () => {
-      try {
-        const premiumStatus = await checkPremiumStatus()
-        if (premiumStatus) {
-          setIsPremium(true)
-          setShowPaymentModal(false)
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current)
-            pollIntervalRef.current = null
-          }
-          toast({
-            title: "Premium Activated!",
-            description: "Your payment was successful. All premium features are now unlocked.",
-          })
-        }
-      } catch (error) {
-        console.error("[v0] Error polling premium status:", error)
-      }
-    }, 3000)
-
-    setTimeout(() => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current)
-        pollIntervalRef.current = null
-      }
-    }, 300000)
-  }
-
-  const handleClosePaymentModal = async () => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current)
-      pollIntervalRef.current = null
-    }
-    setShowPaymentModal(false)
-  }
-
-  useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current)
-      }
-    }
-  }, [])
 
   if (isLoading) {
     return (
@@ -147,7 +63,7 @@ export default function SettingsPage() {
             </Button>
             <div>
               <h1 className="text-2xl font-bold">Account Settings</h1>
-              <p className="text-muted-foreground">Manage your account and subscription</p>
+              <p className="text-muted-foreground">Manage your account</p>
             </div>
           </div>
         </div>
@@ -189,106 +105,8 @@ export default function SettingsPage() {
               </Button>
             </CardContent>
           </Card>
-
-          <Separator />
-
-          {/* Subscription Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Subscription
-              </CardTitle>
-              <CardDescription>Manage your premium subscription and billing</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                <div className="flex items-center gap-3">
-                  {isPremium ? (
-                    <>
-                      <Crown className="h-5 w-5 text-amber-600" />
-                      <div>
-                        <p className="font-medium">Premium Plan</p>
-                        <p className="text-sm text-muted-foreground">$0.15/month</p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <UserIcon className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">Free Plan</p>
-                        <p className="text-sm text-muted-foreground">Basic features only</p>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  {isPremium ? (
-                    <Button variant="outline" onClick={handleManageSubscription} disabled={isManagingBilling}>
-                      {isManagingBilling ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Opening...
-                        </>
-                      ) : (
-                        "Manage Subscription"
-                      )}
-                    </Button>
-                  ) : (
-                    <Button onClick={handleUpgrade}>Upgrade to Premium</Button>
-                  )}
-                </div>
-              </div>
-
-              {isPremium && (
-                <div className="space-y-3">
-                  <h4 className="font-medium">Premium Features</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                      Detailed attendance analytics
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                      Advanced guest management
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                      Response rate tracking
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                      Export guest lists
-                    </li>
-                  </ul>
-                  <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                    <p>
-                      Click <strong>Manage Subscription</strong> to update your payment method, view invoices, or cancel
-                      your subscription.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
       </main>
-
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] relative flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Upgrade to Premium</h3>
-              <Button variant="ghost" size="sm" onClick={handleClosePaymentModal} className="h-8 w-8 p-0">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex-1 overflow-auto p-4">
-              <Checkout productId="premium-monthly" />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
