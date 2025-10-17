@@ -53,7 +53,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
     date: event.date,
     time: event.time,
     location: event.location,
-    guestLimit: event.guestLimit || "",
+    guest_limit: event.guest_limit || "",
     deadline: event.deadline || "",
   })
   const { toast } = useToast()
@@ -189,7 +189,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
       date: editForm.date,
       time: editForm.time,
       location: editForm.location,
-      guestLimit: editForm.guestLimit ? Number.parseInt(editForm.guestLimit) : undefined,
+      guest_limit: editForm.guest_limit ? Number.parseInt(editForm.guest_limit) : undefined,
       deadline: editForm.deadline || undefined,
     }
 
@@ -282,8 +282,8 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
                     id="edit-guest-limit"
                     type="number"
                     min="1"
-                    value={editForm.guestLimit}
-                    onChange={(e) => setEditForm({ ...editForm, guestLimit: e.target.value })}
+                    value={editForm.guest_limit}
+                    onChange={(e) => setEditForm({ ...editForm, guest_limit: e.target.value })}
                     placeholder="No limit"
                   />
                 </div>
@@ -332,10 +332,10 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
               <MapPin className="h-4 w-4 text-muted-foreground" />
               {event.location}
             </div>
-            {event.guestLimit && (
+            {event.guest_limit && (
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                Max {event.guestLimit} guests per person
+                Max {event.guest_limit} guests per person
               </div>
             )}
             {event.deadline && (
@@ -388,13 +388,19 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Guest Limit</CardTitle>
+            <CardTitle className="text-sm font-medium">Response Rate</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{event.guestLimit ? event.guestLimit : "No Limit"}</div>
+            <div className="text-2xl font-bold">
+              {loading
+                ? "..."
+                : rsvps.length > 0
+                  ? `${Math.round((attendingRSVPs.length / rsvps.length) * 100)}%`
+                  : "0%"}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {event.guestLimit ? "Max guests per person" : "Unlimited guests allowed"}
+              {rsvps.length > 0 ? "Guests accepting invitation" : "No responses yet"}
             </p>
           </CardContent>
         </Card>

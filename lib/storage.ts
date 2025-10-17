@@ -96,10 +96,23 @@ export async function deleteEvent(eventId: string, userId: string): Promise<void
 export async function updateEvent(eventId: string, userId: string, updatedEvent: Partial<Event>): Promise<void> {
   const supabase = createBrowserClient()
 
-  const { error } = await supabase.from("events").update(updatedEvent).eq("id", eventId).eq("host_user_id", userId)
+  const dbUpdate: Record<string, any> = {}
+
+  if (updatedEvent.title !== undefined) dbUpdate.title = updatedEvent.title
+  if (updatedEvent.description !== undefined) dbUpdate.description = updatedEvent.description
+  if (updatedEvent.date !== undefined) dbUpdate.date = updatedEvent.date
+  if (updatedEvent.time !== undefined) dbUpdate.time = updatedEvent.time
+  if (updatedEvent.location !== undefined) dbUpdate.location = updatedEvent.location
+  if (updatedEvent.guest_limit !== undefined) dbUpdate.guest_limit = updatedEvent.guest_limit
+  if (updatedEvent.deadline !== undefined) dbUpdate.deadline = updatedEvent.deadline
+  if (updatedEvent.host_name !== undefined) dbUpdate.host_name = updatedEvent.host_name
+  if (updatedEvent.host_email !== undefined) dbUpdate.host_email = updatedEvent.host_email
+
+  const { error } = await supabase.from("events").update(dbUpdate).eq("id", eventId).eq("host_user_id", userId)
 
   if (error) {
     console.error("Error updating event:", error)
+    throw new Error(`Error updating event: ${error.message}`)
   }
 }
 
