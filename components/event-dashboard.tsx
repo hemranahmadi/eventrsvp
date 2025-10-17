@@ -71,7 +71,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
 
   const attendingRSVPs = rsvps.filter((rsvp) => rsvp.attending)
   const notAttendingRSVPs = rsvps.filter((rsvp) => !rsvp.attending)
-  const totalAttending = attendingRSVPs.reduce((sum, rsvp) => sum + (rsvp.partySize || 0), 0)
+  const totalAttending = attendingRSVPs.reduce((sum, rsvp) => sum + (rsvp.party_size || 0), 0)
   const totalNotAttending = notAttendingRSVPs.length
 
   const guestPortalUrl = `${window.location.origin}/rsvp/${event.id}`
@@ -425,18 +425,18 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
                 {attendingRSVPs.map((rsvp) => (
                   <div key={rsvp.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <p className="font-medium">{rsvp.guestName}</p>
-                      <p className="text-sm text-muted-foreground">{rsvp.guestEmail}</p>
+                      <p className="font-medium">{rsvp.guest_name}</p>
+                      <p className="text-sm text-muted-foreground">{rsvp.guest_email}</p>
                       {rsvp.message && <p className="text-sm text-muted-foreground mt-1">"{rsvp.message}"</p>}
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">
-                        +{rsvp.partySize} guest{rsvp.partySize !== 1 ? "s" : ""}
+                        +{rsvp.party_size} guest{rsvp.party_size !== 1 ? "s" : ""}
                       </Badge>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemoveGuest(rsvp.guestEmail, rsvp.guestName)}
+                        onClick={() => handleRemoveGuest(rsvp.guest_email, rsvp.guest_name)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -467,8 +467,8 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
                 {notAttendingRSVPs.map((rsvp) => (
                   <div key={rsvp.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <p className="font-medium">{rsvp.guestName}</p>
-                      <p className="text-sm text-muted-foreground">{rsvp.guestEmail}</p>
+                      <p className="font-medium">{rsvp.guest_name}</p>
+                      <p className="text-sm text-muted-foreground">{rsvp.guest_email}</p>
                       {rsvp.message && <p className="text-sm text-muted-foreground mt-1">"{rsvp.message}"</p>}
                     </div>
                     <div className="flex items-center gap-2">
@@ -478,7 +478,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemoveGuest(rsvp.guestEmail, rsvp.guestName)}
+                        onClick={() => handleRemoveGuest(rsvp.guest_email, rsvp.guest_name)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4" />
