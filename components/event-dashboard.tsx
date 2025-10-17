@@ -126,13 +126,17 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
     }
 
     try {
-      const [year, month, day] = date.split("-").map(Number)
+      // The database returns dates like "2025-10-18T00:00:00+00:00"
+      // We need to extract just "2025-10-18" and parse it in local timezone
+      const dateOnly = date.split("T")[0] // Get "2025-10-18"
+      const [year, month, day] = dateOnly.split("-").map(Number)
       const [hours, minutes] = time.split(":").map(Number)
 
-      // Create date in local timezone by passing components directly
+      // Create date in LOCAL timezone (month is 0-indexed)
       const dateObj = new Date(year, month - 1, day, hours, minutes)
 
       if (isNaN(dateObj.getTime())) {
+        console.error("[v0] Invalid date object created from:", { date, time, year, month, day, hours, minutes })
         return "Invalid Date"
       }
 
@@ -145,6 +149,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
         minute: "2-digit",
       })
     } catch (error) {
+      console.error("[v0] Error formatting date:", error, { date, time })
       return "Invalid Date"
     }
   }
@@ -382,23 +387,15 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              Response Rate
-            </CardTitle>
-            <CardDescription>Percentage of guests who responded</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Guest Limit</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {loading
-                ? "..."
-                : rsvps.length > 0
-                  ? `${Math.round(((attendingRSVPs.length + notAttendingRSVPs.length) / rsvps.length) * 100)}`
-                  : "0"}
-              %
-            </div>
-            <p className="text-xs text-muted-foreground">Of total invitations</p>
+            <div className="text-2xl font-bold">{event.guestLimit ? event.guestLimit : "No Limit"}</div>
+            <p className="text-xs text-muted-foreground">
+              {event.guestLimit ? "Max guests per person" : "Unlimited guests allowed"}
+            </p>
           </CardContent>
         </Card>
       </div>

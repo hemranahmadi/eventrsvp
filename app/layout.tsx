@@ -9,9 +9,22 @@ import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "EventRSVP",
-  description: "Simple event management and RSVP collection",
+  title: "EventRSVP - Simple Event Management",
+  description: "Simple event management and RSVP collection at eventrsvp.ca",
   generator: "v0.app",
+  metadataBase: new URL("https://eventrsvp.ca"),
+  openGraph: {
+    title: "EventRSVP - Simple Event Management",
+    description: "Simple event management and RSVP collection",
+    url: "https://eventrsvp.ca",
+    siteName: "EventRSVP",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "EventRSVP - Simple Event Management",
+    description: "Simple event management and RSVP collection",
+  },
 }
 
 export default function RootLayout({

@@ -62,7 +62,7 @@ export async function createCustomerPortalSession() {
   // Create Customer Portal session
   const session = await stripe.billingPortal.sessions.create({
     customer: profile.stripe_customer_id,
-    return_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/settings`,
+    return_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://eventrsvp.ca"}/settings`,
   })
 
   return session.url

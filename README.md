@@ -2,6 +2,8 @@
 
 A modern event RSVP management system built with Next.js, featuring real email verification and comprehensive event management.
 
+**Live at: https://eventrsvp.ca**
+
 ## Features
 
 ### Authentication System
@@ -34,7 +36,7 @@ sendVerificationEmail: async (email: string, code: string): Promise<boolean> => 
   // SendGrid
   const msg = {
     to: email,
-    from: 'noreply@yourdomain.com',
+    from: 'noreply@eventrsvp.ca',
     subject: 'Verify your EventRSVP account',
     text: `Your verification code is: ${code}`,
   }
@@ -50,14 +52,16 @@ sendVerificationEmail: async (email: string, code: string): Promise<boolean> => 
 \`\`\`
 # Add these for production email service
 SENDGRID_API_KEY=your_sendgrid_key
-EMAIL_FROM=noreply@yourdomain.com
+EMAIL_FROM=noreply@eventrsvp.ca
+NEXT_PUBLIC_SITE_URL=https://eventrsvp.ca
 \`\`\`
 
 ## Getting Started
 
-1. Users must register with real email addresses
-2. Email verification is required before login
-3. Create events and share RSVP links
-4. Monitor responses through the dashboard
+1. Visit https://eventrsvp.ca
+2. Register with a real email address
+3. Verify your email with the 6-digit code
+4. Create events and share RSVP links
+5. Monitor responses through the dashboard
 
 The system enforces email validation at multiple levels to ensure only legitimate users can create accounts and RSVP to events.

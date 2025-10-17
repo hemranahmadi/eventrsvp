@@ -34,14 +34,21 @@ export function EventForm({
     deadline: "",
     deadlineTime: "",
   })
+  const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (submitting) {
+      return
+    }
 
     if (!userId) {
       alert("Please sign in to create events")
       return
     }
+
+    setSubmitting(true)
 
     let deadlineValue = undefined
     if (formData.deadline) {
@@ -81,6 +88,8 @@ export function EventForm({
     } else {
       alert(`Failed to create event: ${result.error || "Unknown error"}`)
     }
+
+    setSubmitting(false)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -185,8 +194,8 @@ export function EventForm({
             </div>
           </div>
 
-          <Button type="submit" className="w-full">
-            Create Event
+          <Button type="submit" className="w-full" disabled={submitting}>
+            {submitting ? "Creating Event..." : "Create Event"}
           </Button>
         </form>
       </CardContent>

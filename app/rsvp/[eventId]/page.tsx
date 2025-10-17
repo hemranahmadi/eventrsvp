@@ -108,13 +108,15 @@ export default function RSVPPage() {
     }
 
     try {
-      const [year, month, day] = date.split("-").map(Number)
+      const dateOnly = date.split("T")[0] // Get "2025-10-18"
+      const [year, month, day] = dateOnly.split("-").map(Number)
       const [hours, minutes] = time.split(":").map(Number)
 
-      // Create date in local timezone by passing components directly
+      // Create date in LOCAL timezone (month is 0-indexed)
       const dateObj = new Date(year, month - 1, day, hours, minutes)
 
       if (isNaN(dateObj.getTime())) {
+        console.error("[v0] Invalid date object created from:", { date, time, year, month, day, hours, minutes })
         return "Invalid Date"
       }
 
@@ -127,6 +129,7 @@ export default function RSVPPage() {
         minute: "2-digit",
       })
     } catch (error) {
+      console.error("[v0] Error formatting date:", error, { date, time })
       return "Invalid Date"
     }
   }
