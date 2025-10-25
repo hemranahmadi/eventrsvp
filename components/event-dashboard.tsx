@@ -422,6 +422,15 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
               <p className="text-muted-foreground text-center py-8">No guests have confirmed attendance yet.</p>
             ) : (
               <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div>
+                    <p className="font-semibold text-green-900">Total Responses</p>
+                    <p className="text-sm text-green-700">
+                      {attendingRSVPs.length} guest{attendingRSVPs.length !== 1 ? "s" : ""} confirmed
+                    </p>
+                  </div>
+                  <div className="text-2xl font-bold text-green-600">{attendingRSVPs.length}</div>
+                </div>
                 {attendingRSVPs.map((rsvp) => (
                   <div key={rsvp.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
@@ -464,6 +473,15 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
               <p className="text-muted-foreground text-center py-8">No guests have declined yet.</p>
             ) : (
               <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div>
+                    <p className="font-semibold text-red-900">Total Responses</p>
+                    <p className="text-sm text-red-700">
+                      {notAttendingRSVPs.length} guest{notAttendingRSVPs.length !== 1 ? "s" : ""} declined
+                    </p>
+                  </div>
+                  <div className="text-2xl font-bold text-red-600">{notAttendingRSVPs.length}</div>
+                </div>
                 {notAttendingRSVPs.map((rsvp) => (
                   <div key={rsvp.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
