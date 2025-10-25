@@ -156,7 +156,7 @@ export function EventForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="guestLimit">Guest Limit (Optional)</Label>
+            <Label htmlFor="guestLimit">Guest Limit *</Label>
             <Input
               id="guestLimit"
               name="guestLimit"
@@ -164,8 +164,10 @@ export function EventForm({
               min="1"
               value={formData.guestLimit}
               onChange={handleChange}
-              placeholder="Maximum guests per person (leave empty for no limit)"
+              placeholder="e.g., 4"
+              required
             />
+            <p className="text-sm text-muted-foreground">Maximum guests per person (including theirself)</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
