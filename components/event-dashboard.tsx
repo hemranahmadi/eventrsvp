@@ -182,6 +182,15 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
   }
 
   const handleEditEvent = async () => {
+    if (!editForm.title || !editForm.date || !editForm.time || !editForm.location || !editForm.guest_limit) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields before saving.",
+        variant: "destructive",
+      })
+      return
+    }
+
     const updatedEvent: Event = {
       ...event,
       title: editForm.title,
@@ -189,7 +198,7 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
       date: editForm.date,
       time: editForm.time,
       location: editForm.location,
-      guest_limit: editForm.guest_limit ? Number.parseInt(editForm.guest_limit) : undefined,
+      guest_limit: Number.parseInt(editForm.guest_limit),
       deadline: editForm.deadline || undefined,
     }
 
@@ -233,11 +242,12 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-title">Event Title</Label>
+                  <Label htmlFor="edit-title">Event Title *</Label>
                   <Input
                     id="edit-title"
                     value={editForm.title}
                     onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    required
                   />
                 </div>
                 <div className="grid gap-2">
@@ -250,42 +260,47 @@ export function EventDashboard({ event, onBack, onEventUpdated, userId }: EventD
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-date">Date</Label>
+                    <Label htmlFor="edit-date">Date *</Label>
                     <Input
                       id="edit-date"
                       type="date"
                       value={editForm.date}
                       onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                      required
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-time">Time</Label>
+                    <Label htmlFor="edit-time">Time *</Label>
                     <Input
                       id="edit-time"
                       type="time"
                       value={editForm.time}
                       onChange={(e) => setEditForm({ ...editForm, time: e.target.value })}
+                      required
                     />
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-location">Location</Label>
+                  <Label htmlFor="edit-location">Location *</Label>
                   <Input
                     id="edit-location"
                     value={editForm.location}
                     onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                    required
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-guest-limit">Guest Limit (optional)</Label>
+                  <Label htmlFor="edit-guest-limit">Guest Limit *</Label>
                   <Input
                     id="edit-guest-limit"
                     type="number"
                     min="1"
                     value={editForm.guest_limit}
                     onChange={(e) => setEditForm({ ...editForm, guest_limit: e.target.value })}
-                    placeholder="No limit"
+                    placeholder="Enter guest limit"
+                    required
                   />
+                  <p className="text-xs text-muted-foreground">Maximum guests per person (including theirself)</p>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-deadline">RSVP Deadline (optional)</Label>
